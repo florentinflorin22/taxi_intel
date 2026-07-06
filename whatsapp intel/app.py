@@ -2,38 +2,68 @@ import streamlit as st
 import json
 import os
 
-# Fișierul unde salvăm mesajele pe server
-DB_FILE = "chat_db.json"
+# CONFIGURARE ȘI DESIGN (Exact ce ți-a plăcut)
+st.set_page_config(page_title="Taxi Intel", layout="centered")
 
+st.markdown("""
+<style>
+    .stApp { background-color: #000000; color: white; }
+    div.stButton > button { width: 100%; height: 80px; font-weight: bold; background-color: #1a1a1a; 
+                            color: #fff; border: 1px solid #333; border-radius: 10px; font-size: 12px; }
+    div.stButton > button:hover { background-color: #2ecc71; }
+    .box { background: #0a0a0a; padding: 15px; border-radius: 8px; border-left: 4px solid #2ecc71; margin-top: 10px; }
+    .stChatInput textarea { background-color: #1a1a1a !important; color: white !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# BAZA DE DATE PENTRU SINCRONIZARE
+DB_FILE = "chat_db.json"
 def load_db():
     if not os.path.exists(DB_FILE): return []
-    with open(DB_FILE, "r") as f: return json.load(f)
+    try:
+        with open(DB_FILE, "r") as f: return json.load(f)
+    except: return []
 
 def save_db(data):
     with open(DB_FILE, "w") as f: json.dump(data, f)
 
-st.set_page_config(page_title="Taxi Intel", layout="centered")
+# Inițializare stare
+if 'page' not in st.session_state: st.session_state.page = 'CHAT'
 
-# --- CSS ---
-st.markdown("""
-<style>
-    .stApp { background-color: #000000; color: white; }
-    .box { background: #111; padding: 12px; border-radius: 8px; margin: 5px 0; border-left: 4px solid #3498db; }
-</style>
-""", unsafe_allow_html=True)
+# GRID 2x2 (Cele 4 pătrate sus)
+col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
-# --- LOGICĂ ---
-st.markdown("<h2 style='text-align: center;'>TAXI INTEL</h2>", unsafe_allow_html=True)
+if col1.button("CHAT"): st.session_state.page = 'CHAT'
+if col2.button("STATIONS"): st.session_state.page = 'STATIONS'
+if col3.button("LCY AIRPORT"): st.session_state.page = 'LCY'
+if col4.button("HEATHROW"): st.session_state.page = 'LHR'
 
-# Secțiune Chat
-user_input = st.chat_input("Write a message...")
-if user_input:
-    db = load_db()
-    db.append(user_input.upper())
-    save_db(db)
-    st.rerun()
+st.markdown("---")
 
-# Afișare mesaje (se încarcă de pe server)
-db = load_db()
-for msg in reversed(db):
-    st.markdown(f'<div class="box">{msg}</div>', unsafe_allow_html=True)
+# LOGICĂ CONȚINUT
+if st.session_state.page == 'CHAT':
+    st.markdown("### 💬 DRIVER CHAT")
+    user_input = st.chat_input("Message...")
+    if user_input:
+        db = load_db()
+        db.append(user_input.upper())
+        save_db(db)
+        st.rerun()
+    
+    # Afișare mesaje sincronizate
+    for msg in reversed(load_db()):
+        st.markdown(f'<div class="box" style="border-left-color:#3498db;">{msg}</div>', unsafe_allow_html=True)
+
+elif st.session_state.page == 'STATIONS':
+    st.markdown("### 🚆 TRAIN STATIONS")
+    # Aici pui logica ta de stații
+    st.markdown('<div class="box">Stații încărcate...</div>', unsafe_allow_html=True)
+
+elif st.session_state.page == 'LCY':
+    st.markdown("### ✈️ CITY AIRPORT")
+    st.markdown('<div class="box">Monitoring LCY...</div>', unsafe_allow_html=True)
+
+elif st.session_state.page == 'LHR':
+    st.markdown("### ✈️ HEATHROW")
+    st.markdown('<div class="box">Monitoring LHR...</div>', unsafe_allow_html=True)
