@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # 1. PAGE SETTINGS
 st.set_page_config(page_title="London Live Intel", layout="centered")
 
-# --- BACKGROUND AUTO-REFRESH EVERY 15 MINUTES (900,000 ms) ---
+# --- BACKGROUND AUTO-REFRESH EVERY 15 MINUTES ---
 st.components.v1.html(
     """
     <script>
@@ -32,12 +32,12 @@ STATION_COLORS = {
     "CITY AIRPORT": "#3498db"
 }
 
-# --- LIVE LOGIC: COMPACT TOP 5 FEED ---
+# --- LIVE LOGIC ---
 def get_top_intel():
     all_trains = []
     flights = []
     
-    # 1. LONDON CITY AIRPORT (LCY)
+    # 1. LCY
     try:
         now = datetime.now()
         flight_config = [
@@ -57,7 +57,7 @@ def get_top_intel():
     except:
         pass
 
-    # 2. FETCH ALL 9 TERMINALS
+    # 2. TRAINS
     stations = {
         "ST PANCRAS INT": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC",
         "EUSTON": "EUS", "KINGS CROSS": "KGX", "WATERLOO": "WAT",
@@ -71,46 +71,59 @@ def get_top_intel():
             with urllib.request.urlopen(req, timeout=2) as response:
                 data = json.loads(response.read().decode())
                 trains = data.get("trainServices", [])
-                
                 if trains:
                     for t in trains:
-                        sta_time = t.get("sta", "--:--")
                         all_trains.append({
                             "type": "TRAIN",
                             "station": station_name,
-                            "time": sta_time,
+                            "time": t.get("sta", "--:--"),
                             "origin": t.get("origin", [{}])[0].get("locationName", "UNKNOWN").upper(),
                             "info": f"{t.get('length', 0)} COACHES" if t.get('length', 0) > 0 else "COACHES: N/A"
                         })
         except:
             pass
-
+    
     all_trains.sort(key=lambda x: x["time"])
     return flights + all_trains[:5]
 
-# --- LOGO LOADING ---
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except:
-        return ""
-
-logo_base64 = get_image_base64("logo.png")
-
-# --- UI & DESIGN CSS ---
+# --- UI & DESIGN ---
 st.markdown("""
 <style>
     .stApp { background-color: #000000 !important; }
     #MainMenu, footer, header {visibility: hidden;}
     .stDeployButton {display:none;}
     .chat-wrapper { display: flex; flex-direction: column; padding-bottom: 100px; }
-    
-    .header-fix {
-        position: fixed; top: 0; left: 0; right: 0; background: #080808;
-        padding: 10px 15px; z-index: 1000; border-bottom: 1px solid #1a1a1a;
-        display: flex; align-items: center; height: 100px;
-    }
-    .logo-img {
-        width: 70px !important; height: 70px !important; border-radius: 50%;
-        border
+    .station-name { font-size: 18px !important; font-weight: 800 !important; text-transform: uppercase; }
+</style>
+""", unsafe_allow_html=True)
+
+# Header
+st.markdown("""
+<div style="position: fixed; top: 0; left: 0; right: 0; background: #080808; padding: 15px; z-index: 1000; border-bottom: 1px solid #1a1a1a;">
+    <div style="color:white; font-weight:bold; font-size:22px;">TAXI INTEL</div>
+    <div style="color: #2ecc71; font-size: 11px; font-weight: bold;">● TOP LIVE TIMELINE</div>
+</div>
+<div style="margin-top: 100px;"></div>
+""", unsafe_allow_html=True)
+
+# Display
+st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+for item in get_top_intel():
+    color = STATION_COLORS.get(item["station"], "#ffffff")
+    icon = "✈️" if item["type"] == "PLANE" else "🚆"
+    st.markdown(f"""
+        <div style="background: #0a0a0a; border-left: 4px solid {color}; padding: 12px; margin: 6px 0;">
+            <div class="station-name" style="color: {color};">{item['station']}</div>
+            <div style="color: white; font-family: monospace; font-size: 15px;">{icon} {item['time']} | FROM: {item['origin']} ({item['info']})</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+for msg in global_history:
+    st.markdown(f'<div style="background:#111; color:#2ecc71; padding:8px; margin:5px; border-radius:4px;">{msg}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Input
+user_input = st.chat_input("Type update...")
+if user_input:
+    global_history.append(user_input.upper())
+    st.rerun()
