@@ -1,23 +1,14 @@
-import sys
-import subprocess
-
-# --- INSTALARE AUTOMATĂ FORȚATĂ DIN COD (Fără requirements.txt) ---
-try:
-    from streamlit_autorefresh import st_autorefresh
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "streamlit-autorefresh"])
-    from streamlit_autorefresh import st_autorefresh
-
 import streamlit as st
 import base64
 from datetime import datetime, timedelta
 import urllib.request
 import json
+from streamlit_autorefresh import st_autorefresh
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# Auto-refresh la fiecare 5 secunde pentru sincronizare globală
+# Auto-refresh la fiecare 5 secunde pentru sincronizare globală chat + gări
 st_autorefresh(interval=5000, key="datarefresh")
 
 # Memorie globală pentru chat-ul șoferilor
@@ -55,7 +46,7 @@ def get_live_intel():
         except:
             intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
 
-    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
+    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar stabil)
     try:
         acum = datetime.now()
         zboruri_config = [
