@@ -24,12 +24,20 @@ def get_global_database():
 
 global_history = get_global_database()
 
+# Station color map
+STATION_COLORS = {
+    "ST PANCRAS INT": "#e74c3c", "PADDINGTON": "#f1c40f", "VICTORIA": "#3498db",
+    "EUSTON": "#9b59b6", "KINGS CROSS": "#e67e22", "WATERLOO": "#1abc9c",
+    "LONDON BRIDGE": "#f39c12", "LIVERPOOL STREET": "#2ecc71", "CHARING CROSS": "#d35400",
+    "CITY AIRPORT": "#3498db"
+}
+
 # --- LIVE LOGIC: COMPACT TOP 5 FEED ---
 def get_top_intel():
     all_trains = []
     flights = []
     
-    # 1. LONDON CITY AIRPORT (LCY) LIVE
+    # 1. LONDON CITY AIRPORT (LCY)
     try:
         now = datetime.now()
         flight_config = [
@@ -66,7 +74,6 @@ def get_top_intel():
                 
                 if trains:
                     for t in trains:
-                        # Extract scheduled/estimated time for sorting
                         sta_time = t.get("sta", "--:--")
                         all_trains.append({
                             "type": "TRAIN",
@@ -78,10 +85,7 @@ def get_top_intel():
         except:
             pass
 
-    # Sort trains by arrival time so the soonest are first
     all_trains.sort(key=lambda x: x["time"])
-    
-    # Combine the flights and take ONLY the top 5 soonest trains to keep it clean
     return flights + all_trains[:5]
 
 # --- LOGO LOADING ---
@@ -109,72 +113,4 @@ st.markdown("""
     }
     .logo-img {
         width: 70px !important; height: 70px !important; border-radius: 50%;
-        border: 2px solid #2ecc71; margin-right: 15px; display: flex;
-        align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    @keyframes blink {
-        0% { opacity: 1; text-shadow: 0 0 8px #2ecc71; }
-        50% { opacity: 0.4; text-shadow: 0 0 0px #2ecc71; }
-        100% { opacity: 1; text-shadow: 0 0 8px #2ecc71; }
-    }
-    .live-indicator { animation: blink 3s infinite; }
-</style>
-""", unsafe_allow_html=True)
-
-# --- HEADER HTML ---
-st.markdown(f"""
-<div class="header-fix">
-    <div class="logo-img">
-        <img src="data:image/png;base64,{logo_base64}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.5);">
-    </div>
-    <div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
-        <div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
-        <div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
-            ● TOP LIVE TIMELINE (15M REFRESH)
-        </div>
-    </div>
-</div>
-<div style="margin-top: 110px;"></div>
-""", unsafe_allow_html=True)
-
-# --- DISPLAY STREAM FEED ---
-st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-
-top_intel = get_top_intel() 
-for item in top_intel:
-    icon = "✈️" if item["type"] == "PLANE" else "🚆"
-    details = f"({item['info']})" if item['info'] else ""
-    border_color = "#3498db" if item["type"] == "PLANE" else "#2ecc71"
-    intel_label = "FLIGHT ARRIVAL" if item["type"] == "PLANE" else item['station']
-    station_text = item['station'] if item['type'] == 'PLANE' else ''
-    
-    st.markdown(f"""
-        <div style="background: #0a0a0a; border-left: 4px solid {border_color}; padding: 10px; margin: 6px 0;">
-            <div style="color: {border_color}; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{intel_label}</div>
-            <div style="color: white; font-family: monospace; font-size: 14px;">
-                {icon} {station_text} {item['time']} | FROM: {item['origin']} {details}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# Driver Chat updates
-for msg_text in global_history:
-    st.markdown(f"""
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-            <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
-                <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
-                <span style="font-size: 14px;">{msg_text}</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-st.markdown('</div>', unsafe_allow_html=True)
-
-# --- TEXT INPUT ---
-user_input = st.chat_input("Type intelligence update...")
-
-if user_input:
-    formatted_text = user_input.upper()
-    if formatted_text not in global_history:
-        global_history.append(formatted_text)
-    st.rerun()
+        border
