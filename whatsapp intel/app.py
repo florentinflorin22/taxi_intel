@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timedelta
 
 # 1. PAGE SETTINGS
-st.set_page_config(page_title="London Terminals & LCY Live", layout="centered")
+st.set_page_config(page_title="London Live Intel", layout="centered")
 
 # --- BACKGROUND AUTO-REFRESH EVERY 15 MINUTES (900,000 ms) ---
 st.components.v1.html(
@@ -24,9 +24,10 @@ def get_global_database():
 
 global_history = get_global_database()
 
-# --- LIVE LOGIC: CITY AIRPORT + 9 TERMINALS ---
-def get_all_intel():
-    intel_data = []
+# --- LIVE LOGIC: COMPACT TOP 5 FEED ---
+def get_top_intel():
+    all_trains = []
+    flights = []
     
     # 1. LONDON CITY AIRPORT (LCY) LIVE
     try:
@@ -38,7 +39,7 @@ def get_all_intel():
         ]
         for fl in flight_config:
             arrival_time = (now + timedelta(minutes=fl["offset"])).strftime("%H:%M")
-            intel_data.append({
+            flights.append({
                 "type": "PLANE",
                 "station": "CITY AIRPORT",
                 "time": arrival_time,
@@ -48,42 +49,40 @@ def get_all_intel():
     except:
         pass
 
-    # 2. THE 9 MAJOR LONDON TRAIN TERMINALS
+    # 2. FETCH ALL 9 TERMINALS
     stations = {
-        "ST PANCRAS INT": "STP",
-        "PADDINGTON": "PAD",
-        "VICTORIA": "VIC",
-        "EUSTON": "EUS",
-        "KINGS CROSS": "KGX",
-        "WATERLOO": "WAT",
-        "LONDON BRIDGE": "LBG",
-        "LIVERPOOL STREET": "LST",
-        "CHARING CROSS": "CHX"
+        "ST PANCRAS INT": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC",
+        "EUSTON": "EUS", "KINGS CROSS": "KGX", "WATERLOO": "WAT",
+        "LONDON BRIDGE": "LBG", "LIVERPOOL STREET": "LST", "CHARING CROSS": "CHX"
     }
     
     for station_name, station_code in stations.items():
         try:
             url = f"https://huxley2.azurewebsites.net/arrivals/{station_code}?rows=2"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=3) as response:
+            with urllib.request.urlopen(req, timeout=2) as response:
                 data = json.loads(response.read().decode())
                 trains = data.get("trainServices", [])
                 
                 if trains:
                     for t in trains:
-                        intel_data.append({
+                        # Extract scheduled/estimated time for sorting
+                        sta_time = t.get("sta", "--:--")
+                        all_trains.append({
                             "type": "TRAIN",
                             "station": station_name,
-                            "time": t.get("sta", "--:--"),
+                            "time": sta_time,
                             "origin": t.get("origin", [{}])[0].get("locationName", "UNKNOWN").upper(),
                             "info": f"{t.get('length', 0)} COACHES" if t.get('length', 0) > 0 else "COACHES: N/A"
                         })
-                else:
-                    intel_data.append({"type": "TRAIN", "station": station_name, "time": "NOW", "origin": "NO ARRIVALS", "info": ""})
         except:
-            intel_data.append({"type": "TRAIN", "station": station_name, "time": "--:--", "origin": "OFFLINE", "info": ""})
+            pass
 
-    return intel_data
+    # Sort trains by arrival time so the soonest are first
+    all_trains.sort(key=lambda x: x["time"])
+    
+    # Combine the flights and take ONLY the top 5 soonest trains to keep it clean
+    return flights + all_trains[:5]
 
 # --- LOGO LOADING ---
 def get_image_base64(path):
@@ -131,7 +130,7 @@ st.markdown(f"""
     <div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
         <div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
         <div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
-            ● 9 TERMINALS + LCY (15M REFRESH)
+            ● TOP LIVE TIMELINE (15M REFRESH)
         </div>
     </div>
 </div>
@@ -141,8 +140,8 @@ st.markdown(f"""
 # --- DISPLAY STREAM FEED ---
 st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 
-all_intel = get_all_intel() 
-for item in all_intel:
+top_intel = get_top_intel() 
+for item in top_intel:
     icon = "✈️" if item["type"] == "PLANE" else "🚆"
     details = f"({item['info']})" if item['info'] else ""
     border_color = "#3498db" if item["type"] == "PLANE" else "#2ecc71"
