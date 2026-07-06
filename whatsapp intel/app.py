@@ -2,37 +2,36 @@ import streamlit as st
 import urllib.request
 import json
 
-# PAGE SETTINGS
 st.set_page_config(page_title="Taxi Intel", layout="centered")
 
-# CSS - CLEAN AND COMPACT
+# CSS pentru card-uri izolate (fiecare item e un box separat)
 st.markdown("""
 <style>
     .stApp { background-color: #000000; color: white; }
-    .section-title { color: #f39c12; font-size: 12px; font-weight: bold; margin: 15px 0 5px 0; text-transform: uppercase; border-bottom: 1px solid #333; }
-    .item-box { background: #0a0a0a; padding: 10px; margin-bottom: 5px; border-radius: 5px; border-left: 4px solid #2ecc71; }
-    .chat-box { background: #1a1a1a; padding: 8px; margin-bottom: 5px; border-radius: 5px; border-left: 4px solid #3498db; }
+    .card { background: #111; padding: 12px; margin: 6px 0; border-radius: 8px; border-left: 5px solid #444; }
+    .card-chat { border-left-color: #3498db; }
+    .card-airport { border-left-color: #f1c40f; }
+    .card-train { border-left-color: #2ecc71; }
+    .title-mini { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
 </style>
 """, unsafe_allow_html=True)
 
-# Memory
 if 'db' not in st.session_state: st.session_state.db = []
 
-# 1. CHAT SECTION
-st.markdown('<div class="section-title">DRIVER CHAT</div>', unsafe_allow_html=True)
+# CHAT SECTION
+st.markdown('<div class="title-mini">DRIVER CHAT</div>', unsafe_allow_html=True)
 user_input = st.chat_input("Type update...")
 if user_input: st.session_state.db.append(user_input.upper())
-for msg in st.session_state.db[-3:]: # Shows last 3 messages
-    st.markdown(f'<div class="chat-box">{msg}</div>', unsafe_allow_html=True)
+for msg in st.session_state.db[-2:]:
+    st.markdown(f'<div class="card card-chat">{msg}</div>', unsafe_allow_html=True)
 
-# 2. AIRPORTS SECTION
-st.markdown('<div class="section-title">AIRPORTS</div>', unsafe_allow_html=True)
-airports = ["CITY AIRPORT", "HEATHROW"]
-for apt in airports:
-    st.markdown(f'<div class="item-box" style="border-left-color:#3498db;"><b>{apt}</b><br>STATUS: MONITORING...</div>', unsafe_allow_html=True)
+# AIRPORTS SECTION
+st.markdown('<div class="title-mini">AIRPORTS</div>', unsafe_allow_html=True)
+for apt in ["CITY AIRPORT", "HEATHROW"]:
+    st.markdown(f'<div class="card card-airport"><b>{apt}</b><br>STATUS: LIVE</div>', unsafe_allow_html=True)
 
-# 3. STATIONS SECTION
-st.markdown('<div class="section-title">TRAIN STATIONS</div>', unsafe_allow_html=True)
+# TRAINS SECTION
+st.markdown('<div class="title-mini">TRAIN STATIONS</div>', unsafe_allow_html=True)
 stations = {
     "ST PANCRAS": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC", 
     "EUSTON": "EUS", "KINGS CROSS": "KGX", "WATERLOO": "WAT", 
@@ -45,10 +44,10 @@ for name, code in stations.items():
         with urllib.request.urlopen(url, timeout=1) as res:
             t = json.loads(res.read().decode()).get("trainServices", [])[0]
             st.markdown(f"""
-                <div class="item-box">
-                    <div style="font-weight:bold; color:#2ecc71;">{name}</div>
-                    🚆 {t.get("sta")} | FROM: {t.get("origin", [{}])[0].get("locationName")}
+                <div class="card card-train">
+                    <div style="font-weight:bold;">{name}</div>
+                    🚆 {t.get("sta")} | {t.get("origin", [{}])[0].get("locationName")}
                 </div>
             """, unsafe_allow_html=True)
     except:
-        st.markdown(f'<div class="item-box" style="border-left-color:#7f8c8d;"><b>{name}</b><br>OFFLINE</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card card-train"><b>{name}</b><br>OFFLINE</div>', unsafe_allow_html=True)
