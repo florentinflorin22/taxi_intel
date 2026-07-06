@@ -7,16 +7,14 @@ import json
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# --- MOTOR AUTO-REFRESH NATIV (Fără pachete externe) ---
-# Injectăm un cod HTML silențios care dă un semnal paginii la fiecare 5 secunde
+# --- MOTOR AUTO-REFRESH NATIV INTEGRAT ---
 st.components.v1.html(
     """
     <script>
-    parent.window.location.reload();
+    setInterval(function(){ parent.window.location.reload(); }, 6000);
     </script>
     """,
-    height=0,
-    width=0
+    height=0, width=0
 )
 
 # Memorie globală pentru chat-ul șoferilor
@@ -54,12 +52,12 @@ def get_live_intel():
         except:
             intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
 
-    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
+    # STÂLPUL 2: CITY AIRPORT LIVE (Generare orară stabilă)
     try:
         acum = datetime.now()
         zboruri_config = [
-            {"offset": 15, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
-            {"offset": 35, "orig": "FRANKFURT (FRA)", "nr": "LH930"}
+            {"offset": 12, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
+            {"offset": 32, "orig": "FRANKFURT (FRA)", "nr": "LH930"}
         ]
         for zb in zboruri_config:
             ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
@@ -75,7 +73,7 @@ def get_live_intel():
 
     return intel_data
 
-# 2. FUNCȚIE LOGO
+# 2. INCĂRCARE LOGO
 def get_image_base64(path):
     try:
         with open(path, "rb") as img_file:
@@ -85,7 +83,7 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 4. DESIGN CSS
+# 3. DESIGN INTEGRAT (CSS + HTML)
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #000000 !important; }}
@@ -110,36 +108,33 @@ st.markdown(f"""
     }}
     .live-indicator {{ animation: blink 2s infinite; }}
 </style>
-""", unsafe_allow_html=True)
 
-# 5. AFIȘARE HEADER
-st.markdown(f"""
 <div class="header-fix">
-<div class="logo-img">
-<img src="data:image/png;base64,{logo_base64}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.5);">
-</div>
-<div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
-<div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
-<div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
-    ● LONDON LIVE FEED
-</div>
-</div>
+    <div class="logo-img">
+        <img src="data:image/png;base64,{logo_base64}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.5);">
+    </div>
+    <div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
+        <div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
+            ● LONDON LIVE FEED
+        </div>
+    </div>
 </div>
 <div style="margin-top: 110px;"></div>
 """, unsafe_allow_html=True)
 
-# 6. AFIȘARE DATE
+# 4. AFIȘARE DATE LIVE
 st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 
 live_intel = get_live_intel() 
 for item in live_intel:
     icon = "✈️" if item["tip"] == "PLANE" else "🚆"
-    detaliu_suplimentar = f"({item['info']})" if item['info'] else ""
+    detaliu = f"({item['info']})" if item['info'] else ""
     st.markdown(f"""
         <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
             <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
             <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
-                {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu_suplimentar}
+                {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu}
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -157,10 +152,11 @@ for msg_text in istoric_global:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# 7. INPUT
+# 5. ZONĂ INPUT MESAJE
 user_input = st.chat_input("Type intelligence update...")
 
 if user_input:
     text_formatat = user_input.upper()
-    istoric_global.append(text_formatat)
+    if text_formatat not in istoric_global:
+        istoric_global.append(text_formatat)
     st.rerun()
