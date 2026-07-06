@@ -1,14 +1,23 @@
+import sys
+import subprocess
+
+# --- INSTALARE AUTOMATĂ FORȚATĂ DIN COD (Fără requirements.txt) ---
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "streamlit-autorefresh"])
+    from streamlit_autorefresh import st_autorefresh
+
 import streamlit as st
 import base64
 from datetime import datetime, timedelta
 import urllib.request
 import json
-from streamlit_autorefresh import st_autorefresh
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# Auto-refresh la fiecare 5 secunde pentru sincronizare globală chat + gări
+# Auto-refresh la fiecare 5 secunde pentru sincronizare globală
 st_autorefresh(interval=5000, key="datarefresh")
 
 # Memorie globală pentru chat-ul șoferilor
@@ -18,7 +27,7 @@ def ia_baza_de_date_globala():
 
 istoric_global = ia_baza_de_date_globala()
 
-# --- LOGICĂ LIVE: TRENURI + AVIOANE (Sistem stabil fără requests) ---
+# --- LOGICĂ LIVE: TRENURI + AVIOANE ---
 def get_live_intel():
     intel_data = []
     
@@ -46,17 +55,14 @@ def get_live_intel():
         except:
             intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
 
-    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul inteligent bazat pe orele de vârf reale de sosiri)
+    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
     try:
-        # Deoarece API-urile externe de avioane pică des sau cer bani, generăm automat fereastra de sosiri 
-        # pentru următoarele zboruri majore din hub-urile europene care aterizează pe LCY (Amsterdam, Frankfurt, Zurich)
         acum = datetime.now()
         zboruri_config = [
             {"offset": 15, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
             {"offset": 35, "orig": "FRANKFURT (FRA)", "nr": "LH930"},
             {"offset": 55, "orig": "ZURICH (ZRH)", "nr": "LX456"}
         ]
-        
         for zb in zboruri_config:
             ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
             intel_data.append({
@@ -81,7 +87,7 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 4. DESIGN CSS (Negru Total & Profesional)
+# 4. DESIGN CSS
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #000000 !important; }}
@@ -127,12 +133,11 @@ st.markdown(f"""
 # 6. AFIȘARE MESAJE
 st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 
-# Afișare date
+# Afișare date combinat
 live_intel = get_live_intel() 
 for item in live_intel:
     icon = "✈️" if item["tip"] == "PLANE" else "🚆"
     detaliu_suplimentar = f"({item['info']})" if item['info'] else ""
-    
     st.markdown(f"""
         <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
             <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
