@@ -3,19 +3,10 @@ import base64
 from datetime import datetime, timedelta
 import urllib.request
 import json
+import time
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
-
-# --- MOTOR AUTO-REFRESH NATIV INTEGRAT ---
-st.components.v1.html(
-    """
-    <script>
-    setInterval(function(){ parent.window.location.reload(); }, 6000);
-    </script>
-    """,
-    height=0, width=0
-)
 
 # Memorie globală pentru chat-ul șoferilor
 @st.cache_resource
@@ -52,7 +43,7 @@ def get_live_intel():
         except:
             intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
 
-    # STÂLPUL 2: CITY AIRPORT LIVE (Generare orară stabilă)
+    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
     try:
         acum = datetime.now()
         zboruri_config = [
@@ -73,7 +64,7 @@ def get_live_intel():
 
     return intel_data
 
-# 2. INCĂRCARE LOGO
+# 2. ÎNCĂRCARE LOGO
 def get_image_base64(path):
     try:
         with open(path, "rb") as img_file:
@@ -83,7 +74,7 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 3. DESIGN INTEGRAT (CSS + HTML)
+# 3. DESIGN STATIC (CSS + HEADER)
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #000000 !important; }}
@@ -123,36 +114,42 @@ st.markdown(f"""
 <div style="margin-top: 110px;"></div>
 """, unsafe_allow_html=True)
 
-# 4. AFIȘARE DATE LIVE
-st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-
-live_intel = get_live_intel() 
-for item in live_intel:
-    icon = "✈️" if item["tip"] == "PLANE" else "🚆"
-    detaliu = f"({item['info']})" if item['info'] else ""
-    st.markdown(f"""
-        <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
-            <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
-            <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
-                {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu}
+# --- 4. ZONA LIVE (Se reîmprospătează inteligent la 5 secunde FĂRĂ SĂ PÂLPÂIE PAGINA) ---
+@st.fragment(run_every=5)
+def afiseaza_continut_live():
+    st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+    
+    # Afișare trenuri și avioane
+    live_intel = get_live_intel() 
+    for item in live_intel:
+        icon = "✈️" if item["tip"] == "PLANE" else "🚆"
+        detaliu = f"({item['info']})" if item['info'] else ""
+        st.markdown(f"""
+            <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
+                <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
+                <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
+                    {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu}
+                </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-# Afișare mesaje șoferi
-for msg_text in istoric_global:
-    st.markdown(f"""
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-            <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
-                <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
-                <span style="font-size: 14px;">{msg_text}</span>
+    # Afișare mesaje șoferi
+    for msg_text in istoric_global:
+        st.markdown(f"""
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
+                    <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
+                    <span style="font-size: 14px;">{msg_text}</span>
+                </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+    st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+# Rulăm fragmentul live
+afiseaza_continut_live()
 
-# 5. ZONĂ INPUT MESAJE
+# 5. ZONĂ INPUT MESAJE (Rămâne neatinsă de refresh)
 user_input = st.chat_input("Type intelligence update...")
 
 if user_input:
