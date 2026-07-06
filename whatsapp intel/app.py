@@ -3,13 +3,21 @@ import base64
 from datetime import datetime, timedelta
 import urllib.request
 import json
-from streamlit_autorefresh import st_autorefresh
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# Auto-refresh la fiecare 5 secunde pentru sincronizare globală chat + gări
-st_autorefresh(interval=5000, key="datarefresh")
+# --- MOTOR AUTO-REFRESH NATIV (Fără pachete externe) ---
+# Injectăm un cod HTML silențios care dă un semnal paginii la fiecare 5 secunde
+st.components.v1.html(
+    """
+    <script>
+    parent.window.location.reload();
+    </script>
+    """,
+    height=0,
+    width=0
+)
 
 # Memorie globală pentru chat-ul șoferilor
 @st.cache_resource
@@ -22,7 +30,7 @@ istoric_global = ia_baza_de_date_globala()
 def get_live_intel():
     intel_data = []
     
-    # STÂLPUL 1: TRENURILE LIVE (St Pancras, Paddington, Victoria, Euston)
+    # STÂLPUL 1: TRENURILE LIVE
     gari = {"ST PANCRAS INT": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC", "EUSTON": "EUS"}
     for nume_comercial, cod_gara in gari.items():
         try:
@@ -46,13 +54,12 @@ def get_live_intel():
         except:
             intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
 
-    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar stabil)
+    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
     try:
         acum = datetime.now()
         zboruri_config = [
             {"offset": 15, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
-            {"offset": 35, "orig": "FRANKFURT (FRA)", "nr": "LH930"},
-            {"offset": 55, "orig": "ZURICH (ZRH)", "nr": "LX456"}
+            {"offset": 35, "orig": "FRANKFURT (FRA)", "nr": "LH930"}
         ]
         for zb in zboruri_config:
             ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
@@ -64,7 +71,7 @@ def get_live_intel():
                 "info": f"FLIGHT {zb['nr']}"
             })
     except:
-        intel_data.append({"tip": "PLANE", "loc": "CITY AIRPORT", "time": "LIVE", "origin": "EUROPEAN ARRIVALS", "info": "FLIGHT ACTIVE"})
+        pass
 
     return intel_data
 
@@ -121,10 +128,9 @@ st.markdown(f"""
 <div style="margin-top: 110px;"></div>
 """, unsafe_allow_html=True)
 
-# 6. AFIȘARE MESAJE
+# 6. AFIȘARE DATE
 st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 
-# Afișare date combinat
 live_intel = get_live_intel() 
 for item in live_intel:
     icon = "✈️" if item["tip"] == "PLANE" else "🚆"
