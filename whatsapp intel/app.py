@@ -4,10 +4,10 @@ import urllib.request
 import json
 from datetime import datetime, timedelta
 
-# 1. SETĂRI PAGINĂ
+# 1. PAGE SETTINGS
 st.set_page_config(page_title="London Terminals & LCY Live", layout="centered")
 
-# --- MOTOR AUTO-REFRESH LA 15 MINUTE ---
+# --- BACKGROUND AUTO-REFRESH EVERY 15 MINUTES (900,000 ms) ---
 st.components.v1.html(
     """
     <script>
@@ -17,39 +17,39 @@ st.components.v1.html(
     height=0, width=0
 )
 
-# Memorie globală pentru chat-ul șoferilor
+# Global memory for driver chat updates
 @st.cache_resource
-def ia_baza_de_date_globala():
+def get_global_database():
     return []
 
-istoric_global = ia_baza_de_date_globala()
+global_history = get_global_database()
 
-# --- LOGICĂ LIVE: CITY AIRPORT + CELE 9 GĂRI MARI ---
+# --- LIVE LOGIC: CITY AIRPORT + 9 TERMINALS ---
 def get_all_intel():
     intel_data = []
     
-    # STÂLPUL 1: CITY AIRPORT LIVE (Calcul orar sosiri business)
+    # 1. LONDON CITY AIRPORT (LCY) LIVE
     try:
-        acum = datetime.now()
-        zboruri_config = [
+        now = datetime.now()
+        flight_config = [
             {"offset": 10, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
             {"offset": 30, "orig": "FRANKFURT (FRA)", "nr": "LH930"},
             {"offset": 50, "orig": "ZURICH (ZRH)", "nr": "LX456"}
         ]
-        for zb in zboruri_config:
-            ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
+        for fl in flight_config:
+            arrival_time = (now + timedelta(minutes=fl["offset"])).strftime("%H:%M")
             intel_data.append({
-                "tip": "PLANE",
-                "loc": "CITY AIRPORT",
-                "time": ora_sosire,
-                "origin": zb["orig"],
-                "info": f"FLIGHT {zb['nr']}"
+                "type": "PLANE",
+                "station": "CITY AIRPORT",
+                "time": arrival_time,
+                "origin": fl["orig"],
+                "info": f"FLIGHT {fl['nr']}"
             })
     except:
         pass
 
-    # STÂLPUL 2: CELE 9 GĂRI TERMINALE
-    gari = {
+    # 2. THE 9 MAJOR LONDON TRAIN TERMINALS
+    stations = {
         "ST PANCRAS INT": "STP",
         "PADDINGTON": "PAD",
         "VICTORIA": "VIC",
@@ -61,31 +61,31 @@ def get_all_intel():
         "CHARING CROSS": "CHX"
     }
     
-    for nume_comercial, cod_gara in gari.items():
+    for station_name, station_code in stations.items():
         try:
-            url = f"https://huxley2.azurewebsites.net/arrivals/{cod_gara}?rows=2"
+            url = f"https://huxley2.azurewebsites.net/arrivals/{station_code}?rows=2"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=3) as response:
                 data = json.loads(response.read().decode())
-                date_tren = data.get("trainServices", [])
+                trains = data.get("trainServices", [])
                 
-                if date_tren:
-                    for t in date_tren:
+                if trains:
+                    for t in trains:
                         intel_data.append({
-                            "tip": "TRAIN",
-                            "loc": nume_comercial,
+                            "type": "TRAIN",
+                            "station": station_name,
                             "time": t.get("sta", "--:--"),
                             "origin": t.get("origin", [{}])[0].get("locationName", "UNKNOWN").upper(),
                             "info": f"{t.get('length', 0)} COACHES" if t.get('length', 0) > 0 else "COACHES: N/A"
                         })
                 else:
-                    intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "ACUM", "origin": "NO ARRIVALS", "info": ""})
+                    intel_data.append({"type": "TRAIN", "station": station_name, "time": "NOW", "origin": "NO ARRIVALS", "info": ""})
         except:
-            intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "OFFLINE", "info": ""})
+            intel_data.append({"type": "TRAIN", "station": station_name, "time": "--:--", "origin": "OFFLINE", "info": ""})
 
     return intel_data
 
-# 2. ÎNCĂRCARE LOGO
+# --- LOGO LOADING ---
 def get_image_base64(path):
     try:
         with open(path, "rb") as img_file:
@@ -95,7 +95,7 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 3. DESIGN CSS + HEADER
+# --- UI & DESIGN ---
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #000000 !important; }}
@@ -115,63 +115,4 @@ st.markdown(f"""
     }}
     @keyframes blink {{
         0% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
-        50% {{ opacity: 0.4; text-shadow: 0 0 0px #2ecc71; }}
-        100% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
-    }}
-    .live-indicator {{ animation: blink 3s infinite; }}
-</style>
-
-<div class="header-fix">
-    <div class="logo-img">
-        <img src="data:image/png;base64,{logo_base64}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.5);">
-    </div>
-    <div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
-        <div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
-        <div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
-            ● 9 TERMINALS + LCY (15M REFRESH)
-        </div>
-    </div>
-</div>
-<div style="margin-top: 110px;"></div>
-""", unsafe_allow_html=True)
-
-# 4. AFIȘARE DATE ȘI CHAT
-st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-
-all_intel = get_all_intel() 
-for item in all_intel:
-    icon = "✈️" if item["tip"] == "PLANE" else "🚆"
-    detaliu = f"({item['info']})" if item['info'] else ""
-    border_color = "#3498db" if item["tip"] == "PLANE" else "#2ecc71"
-    intel_label = "FLIGHT ARRIVAL" if item["tip"] == "PLANE" else item['loc']
-    
-    st.markdown(f"""
-        <div style="background: #0a0a0a; border-left: 4px solid {border_color}; padding: 10px; margin: 6px 0;">
-            <div style="color: {border_color}; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{intel_label}</div>
-            <div style="color: white; font-family: monospace; font-size: 14px;">
-                {icon} {item['loc'] if item['tip'] == 'PLANE' else ''} {item['time']} | FROM: {item['origin']} {detaliu}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# Mesaje chat
-for msg_text in istoric_global:
-    st.markdown(f"""
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-            <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
-                <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
-                <span style="font-size: 14px;">{msg_text}</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-st.markdown('</div>', unsafe_allow_html=True)
-
-# 5. INPUT CHAT
-user_input = st.chat_input("Type intelligence update...")
-
-if user_input:
-    text_formatat = user_input.upper()
-    if text_formatat not in istoric_global:
-        istoric_global.append(text_formatat)
-    st.rerun()
+        50% {{ opacity: 0.
