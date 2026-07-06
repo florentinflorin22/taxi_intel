@@ -1,12 +1,21 @@
 import streamlit as st
 import base64
-from datetime import datetime, timedelta
 import urllib.request
 import json
-import time
+from datetime import datetime, timedelta
 
 # 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel Live", layout="centered")
+st.set_page_config(page_title="London Terminals & LCY Live", layout="centered")
+
+# --- MOTOR AUTO-REFRESH LA 15 MINUTE ---
+st.components.v1.html(
+    """
+    <script>
+    setInterval(function(){ parent.window.location.reload(); }, 900000);
+    </script>
+    """,
+    height=0, width=0
+)
 
 # Memorie globală pentru chat-ul șoferilor
 @st.cache_resource
@@ -15,12 +24,43 @@ def ia_baza_de_date_globala():
 
 istoric_global = ia_baza_de_date_globala()
 
-# --- LOGICĂ LIVE: TRENURI + AVIOANE ---
-def get_live_intel():
+# --- LOGICĂ LIVE: CITY AIRPORT + CELE 9 GĂRI MARI ---
+def get_all_intel():
     intel_data = []
     
-    # STÂLPUL 1: TRENURILE LIVE
-    gari = {"ST PANCRAS INT": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC", "EUSTON": "EUS"}
+    # STÂLPUL 1: CITY AIRPORT LIVE (Calcul orar sosiri business)
+    try:
+        acum = datetime.now()
+        zboruri_config = [
+            {"offset": 10, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
+            {"offset": 30, "orig": "FRANKFURT (FRA)", "nr": "LH930"},
+            {"offset": 50, "orig": "ZURICH (ZRH)", "nr": "LX456"}
+        ]
+        for zb in zboruri_config:
+            ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
+            intel_data.append({
+                "tip": "PLANE",
+                "loc": "CITY AIRPORT",
+                "time": ora_sosire,
+                "origin": zb["orig"],
+                "info": f"FLIGHT {zb['nr']}"
+            })
+    except:
+        pass
+
+    # STÂLPUL 2: CELE 9 GĂRI TERMINALE
+    gari = {
+        "ST PANCRAS INT": "STP",
+        "PADDINGTON": "PAD",
+        "VICTORIA": "VIC",
+        "EUSTON": "EUS",
+        "KINGS CROSS": "KGX",
+        "WATERLOO": "WAT",
+        "LONDON BRIDGE": "LBG",
+        "LIVERPOOL STREET": "LST",
+        "CHARING CROSS": "CHX"
+    }
+    
     for nume_comercial, cod_gara in gari.items():
         try:
             url = f"https://huxley2.azurewebsites.net/arrivals/{cod_gara}?rows=2"
@@ -41,26 +81,7 @@ def get_live_intel():
                 else:
                     intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "ACUM", "origin": "NO ARRIVALS", "info": ""})
         except:
-            intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
-
-    # STÂLPUL 2: CITY AIRPORT LIVE (Calcul orar)
-    try:
-        acum = datetime.now()
-        zboruri_config = [
-            {"offset": 12, "orig": "AMSTERDAM (AMS)", "nr": "KL101"},
-            {"offset": 32, "orig": "FRANKFURT (FRA)", "nr": "LH930"}
-        ]
-        for zb in zboruri_config:
-            ora_sosire = (acum + timedelta(minutes=zb["offset"])).strftime("%H:%M")
-            intel_data.append({
-                "tip": "PLANE",
-                "loc": "CITY AIRPORT",
-                "time": ora_sosire,
-                "origin": zb["orig"],
-                "info": f"FLIGHT {zb['nr']}"
-            })
-    except:
-        pass
+            intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "OFFLINE", "info": ""})
 
     return intel_data
 
@@ -74,7 +95,7 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 3. DESIGN STATIC (CSS + HEADER)
+# 3. DESIGN CSS + HEADER
 st.markdown(f"""
 <style>
     .stApp {{ background-color: #000000 !important; }}
@@ -97,7 +118,7 @@ st.markdown(f"""
         50% {{ opacity: 0.4; text-shadow: 0 0 0px #2ecc71; }}
         100% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
     }}
-    .live-indicator {{ animation: blink 2s infinite; }}
+    .live-indicator {{ animation: blink 3s infinite; }}
 </style>
 
 <div class="header-fix">
@@ -107,49 +128,46 @@ st.markdown(f"""
     <div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
         <div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">TAXI INTEL</div>
         <div class="live-indicator" style="color: #2ecc71; font-size: 11px; margin-top: 5px; letter-spacing: 1px; font-weight: bold;">
-            ● LONDON LIVE FEED
+            ● 9 TERMINALS + LCY (15M REFRESH)
         </div>
     </div>
 </div>
 <div style="margin-top: 110px;"></div>
 """, unsafe_allow_html=True)
 
-# --- 4. ZONA LIVE (Se reîmprospătează inteligent la 5 secunde FĂRĂ SĂ PÂLPÂIE PAGINA) ---
-@st.fragment(run_every=5)
-def afiseaza_continut_live():
-    st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+# 4. AFIȘARE DATE ȘI CHAT
+st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+
+all_intel = get_all_intel() 
+for item in all_intel:
+    icon = "✈️" if item["tip"] == "PLANE" else "🚆"
+    detaliu = f"({item['info']})" if item['info'] else ""
+    border_color = "#3498db" if item["tip"] == "PLANE" else "#2ecc71"
+    intel_label = "FLIGHT ARRIVAL" if item["tip"] == "PLANE" else item['loc']
     
-    # Afișare trenuri și avioane
-    live_intel = get_live_intel() 
-    for item in live_intel:
-        icon = "✈️" if item["tip"] == "PLANE" else "🚆"
-        detaliu = f"({item['info']})" if item['info'] else ""
-        st.markdown(f"""
-            <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
-                <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
-                <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
-                    {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu}
-                </div>
+    st.markdown(f"""
+        <div style="background: #0a0a0a; border-left: 4px solid {border_color}; padding: 10px; margin: 6px 0;">
+            <div style="color: {border_color}; font-size: 9px; font-weight: bold; letter-spacing: 1px;">{intel_label}</div>
+            <div style="color: white; font-family: monospace; font-size: 14px;">
+                {icon} {item['loc'] if item['tip'] == 'PLANE' else ''} {item['time']} | FROM: {item['origin']} {detaliu}
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Afișare mesaje șoferi
-    for msg_text in istoric_global:
-        st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
-                    <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
-                    <span style="font-size: 14px;">{msg_text}</span>
-                </div>
+# Mesaje chat
+for msg_text in istoric_global:
+    st.markdown(f"""
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
+                <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
+                <span style="font-size: 14px;">{msg_text}</span>
             </div>
-        """, unsafe_allow_html=True)
-        
-    st.markdown('</div>', unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
+    
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Rulăm fragmentul live
-afiseaza_continut_live()
-
-# 5. ZONĂ INPUT MESAJE (Rămâne neatinsă de refresh)
+# 5. INPUT CHAT
 user_input = st.chat_input("Type intelligence update...")
 
 if user_input:
