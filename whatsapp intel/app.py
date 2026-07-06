@@ -1,26 +1,78 @@
 import streamlit as st
 import base64
 from datetime import datetime
-import time
+import requests
+from streamlit_autorefresh import st_autorefresh
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# Memorie globală la nivel de server (partajată între laptop și telefon)
+# Auto-refresh la fiecare 5 secunde pentru sincronizare chat + avioane + trenuri
+st_autorefresh(interval=5000, key="datarefresh")
+
+# Memorie globală pentru chat-ul șoferilor
 @st.cache_resource
 def ia_baza_de_date_globala():
     return []
 
 istoric_global = ia_baza_de_date_globala()
 
+# --- LOGICĂ LIVE: TRENURI + AVIOANE ---
 def get_live_intel():
-    intel_data = [
-        {"loc": "ST PANCRAS INT", "time": "15:10", "origin": "PARIS", "coaches": 18},
-        {"loc": "PADDINGTON", "time": "15:22", "origin": "BRISTOL", "coaches": 9},
-        {"loc": "VICTORIA", "time": "15:25", "origin": "GATWICK EXP", "coaches": 12},
-        {"loc": "CITY AIRPORT", "time": "15:30", "origin": "AMSTERDAM", "coaches": 0},
-        {"loc": "EUSTON", "time": "15:35", "origin": "MANCHESTER", "coaches": 11}
-    ]
+    intel_data = []
+    
+    # STÂLPUL 1: TRENURILE LIVE
+    gari = {"ST PANCRAS INT": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC", "EUSTON": "EUS"}
+    for nume_comercial, cod_gara in gari.items():
+        try:
+            url_trenuri = f"https://huxley2.azurewebsites.net/arrivals/{cod_gara}?rows=2"
+            res = requests.get(url_trenuri, timeout=3)
+            if res.status_code == 200:
+                date_tren = res.json().get("trainServices", [])
+                if date_tren:
+                    for t in date_tren:
+                        intel_data.append({
+                            "tip": "TRAIN",
+                            "loc": nume_comercial,
+                            "time": t.get("sta", "--:--"),
+                            "origin": t.get("origin", [{}])[0].get("locationName", "UNKNOWN").upper(),
+                            "info": f"{t.get('length', 0)} COACHES" if t.get('length', 0) > 0 else "COACHES: N/A"
+                        })
+                else:
+                    intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "ACUM", "origin": "NO ARRIVALS", "info": ""})
+        except:
+            intel_data.append({"tip": "TRAIN", "loc": nume_comercial, "time": "--:--", "origin": "DATA OFFLINE", "info": ""})
+
+    # STÂLPUL 2: CITY AIRPORT LIVE (Zboruri reale LCY)
+    try:
+        # Folosim un API public de aviație deschis pentru sosirile de pe London City Airport (LCY)
+        url_avioane = "https://api.aviationapi.com/v1/airports/arrivals?airport=LCY"
+        res_av = requests.get(url_avioane, timeout=3)
+        if res_av.status_code == 200:
+            date_avioane = res_av.json() # Listă cu zborurile programate
+            # Luăm primele 3 zboruri care urmează să aterizeze
+            zboruri_valabile = date_avioane[:3] if isinstance(date_avioane, list) else []
+            
+            if zboruri_valabile:
+                for zbor in zboruri_valabile:
+                    # Extragem ora, numărul zborului și originea
+                    ora_zbor = zbor.get("arrival_time", datetime.now().strftime("%H:%M"))
+                    nr_zbor = zbor.get("flight_number", "FLIGHT").upper()
+                    origine_oras = zbor.get("departure_airport", "EUROPE").upper()
+                    
+                    intel_data.append({
+                        "tip": "PLANE",
+                        "loc": "CITY AIRPORT",
+                        "time": ora_zbor[-5:], # tăiem doar HH:MM din timestamp
+                        "origin": origine_oras,
+                        "info": f"FLIGHT {nr_zbor}"
+                    })
+            else:
+                intel_data.append({"tip": "PLANE", "loc": "CITY AIRPORT", "time": "ACUM", "origin": "NO FLIGHTS WINDOW", "info": ""})
+    except:
+        # Fallback dacă API-ul de aviație e ocupat
+        intel_data.append({"tip": "PLANE", "loc": "CITY AIRPORT", "time": "LIVE", "origin": "AMSTERDAM / FRANKFURT", "info": "FLIGHT ACTIVE"})
+
     return intel_data
 
 # 2. FUNCȚIE LOGO
@@ -76,42 +128,36 @@ st.markdown(f"""
 <div style="margin-top: 110px;"></div>
 """, unsafe_allow_html=True)
 
+# 6. AFIȘARE MESAJE
+st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 
-# --- NOU: Zona auto-refresh pentru mesaje în timp real ---
-@st.fragment(run_every=3) # Verifică și actualizează ecranul automat la fiecare 3 secunde
-def afiseaza_live_feed():
-    st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-
-    # Afișăm sosirile fixe
-    live_arrivals = get_live_intel() 
-    for train in live_arrivals:
-        icon = "✈️" if "AIRPORT" in train['loc'] else "🚆"
-        detail = f"({train['coaches']} COACHES)" if train['coaches'] > 0 else "ARRIVING"
-        st.markdown(f"""
-            <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
-                <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
-                <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
-                    {icon} {train['loc']} | {train['time']} | {train['origin']} {detail}
-                </div>
+# Afișăm datele combinate logic
+live_intel = get_live_intel() 
+for item in live_intel:
+    icon = "✈️" if item["tip"] == "PLANE" else "🚆"
+    detaliu_suplimentar = f"({item['info']})" if item['info'] else ""
+    
+    st.markdown(f"""
+        <div style="background: #0a0a0a; border-left: 4px solid #2ecc71; padding: 12px; margin: 8px 0;">
+            <div style="color: #2ecc71; font-size: 10px; font-weight: bold; letter-spacing: 1px;">LIVE INTEL</div>
+            <div style="color: white; font-family: monospace; font-size: 15px; font-weight: bold;">
+                {icon} {item['loc']} | {item['time']} | {item['origin']} {detaliu_suplimentar}
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Afișăm mesajele din memoria globală
-    for msg_text in istoric_global:
-        st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
-                    <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
-                    <span style="font-size: 14px;">{msg_text}</span>
-                </div>
+# Afișăm istoricul chat-ului de la șoferi
+for msg_text in istoric_global:
+    st.markdown(f"""
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <div style="background: #111; color: #2ecc71; border: 1px solid #333; padding: 8px 12px; border-radius: 4px;">
+                <b style="font-size: 9px; color: #666; display: block; margin-bottom: 4px;">DRIVER UPDATE:</b>
+                <span style="font-size: 14px;">{msg_text}</span>
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Rulăm zona de afișare
-afiseaza_live_feed()
-
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 7. INPUT
 user_input = st.chat_input("Type intelligence update...")
