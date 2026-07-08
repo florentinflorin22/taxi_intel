@@ -2,58 +2,58 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 # 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel Pro", layout="wide")
+st.set_page_config(page_title="Taxi Intel London", layout="wide")
 
-# 2. CSS AVANSAT
+# 2. CSS AVANSAT - London Transport Style
 st.markdown("""
 <style>
-    .stApp { background-color: #0a0a0a; color: #fff; }
-    .data-card {
-        background: #151515; padding: 15px; border-radius: 12px;
-        margin: 5px; border-left: 5px solid #FFD700;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    .stApp { background-color: #050505; color: #fff; }
+    .station-card {
+        background: #1a1a1a; padding: 15px; border-radius: 8px;
+        border-left: 5px solid #FFD700; margin-bottom: 10px;
     }
+    .station-name { font-weight: bold; color: #FFD700; font-size: 1.2em; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATE EXTINSE
-# Simulam un flux de date pentru următoarele 30 minute
-data = [
-    {"name": "Heathrow Express", "type": "Train", "eta": "16:40", "cap": 9, "status": "On Time"},
-    {"name": "Gatwick Express", "type": "Train", "eta": "16:48", "cap": 8, "status": "On Time"},
-    {"name": "Stansted Express", "type": "Train", "eta": "17:05", "cap": 12, "status": "Delayed"},
-    {"name": "Flight BA292", "type": "Airport", "eta": "16:35", "cap": 0, "status": "Arrived"},
-    {"name": "Flight AA100", "type": "Airport", "eta": "16:50", "cap": 0, "status": "On Time"},
-    {"name": "Flight EK007", "type": "Airport", "eta": "17:15", "cap": 0, "status": "On Time"}
-]
+# 3. DATE CU GĂRI ȘI AEROPORTURI
+london_hubs = {
+    "Stations": [
+        {"name": "London Waterloo", "status": "Busy", "eta": "16:30"},
+        {"name": "London Victoria", "status": "Moderate", "eta": "16:35"},
+        {"name": "Paddington", "status": "High Volume", "eta": "16:40"},
+        {"name": "Kings Cross", "status": "Active", "eta": "16:50"}
+    ],
+    "Airports": [
+        {"name": "Heathrow (LHR)", "origin": "JFK", "eta": "16:45"},
+        {"name": "Gatwick (LGW)", "origin": "DXB", "eta": "17:05"}
+    ]
+}
 
-# 4. SIDEBAR - CONTROL
+# 4. SIDEBAR - SELECTOR HUB
 with st.sidebar:
-    st.header("🕒 Look Ahead")
-    time_window = st.select_slider("Time Window (minutes)", options=[15, 30, 45, 60], value=30)
+    st.title("📍 LONDON HUB")
+    category = st.radio("Select Zone:", ["Stations", "Airports"])
     st.divider()
-    st.write(f"Monitorizăm pentru următoarele {time_window} min.")
+    st.info("Monitorizează fluxul de pasageri pentru a identifica zonele cu potențial maxim de cursă.")
 
-# 5. LOGICĂ DE FILTRARE (Afișare Grid)
-st.title("Live Operations Center")
-cols = st.columns(3)
+# 5. LOGICĂ AFIȘARE
+st.title(f"Live Status: {category}")
 
-# Calculăm timpul curent pentru a filtra
-now = datetime.now()
-target_time = now + timedelta(minutes=time_window)
-
-count = 0
-for item in data:
-    # Transformăm string-ul "HH:MM" în obiect time pentru comparare
-    item_time = datetime.strptime(item["eta"], "%H:%M").time()
-    
-    # Afișăm doar ce este în fereastra de timp selectată
-    with cols[count % 3]:
-        st.markdown(f"""
-            <div class="data-card">
-                <small style="color:#FFD700">{item['type']}</small>
-                <h3>{item['name']}</h3>
-                <p>ETA: {item['eta']} | Status: <b>{item['status']}</b></p>
-            </div>
-        """, unsafe_allow_html=True)
-    count += 1
+cols = st.columns(2)
+for i, item in enumerate(london_hubs[category]):
+    with cols[i % 2]:
+        if category == "Stations":
+            st.markdown(f"""
+                <div class="station-card">
+                    <div class="station-name">{item['name']}</div>
+                    <p>Status: {item['status']}<br>Next peak: {item['eta']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="station-card">
+                    <div class="station-name">{item['name']}</div>
+                    <p>Origin: {item['origin']}<br>ETA: {item['eta']}</p>
+                </div>
+            """, unsafe_allow_html=True)
