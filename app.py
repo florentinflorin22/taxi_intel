@@ -12,25 +12,32 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# 2. CSS (Design curat)
 st.markdown("""
 <style>
-    .stApp { background-color: #000000; color: white; }
-    .header-box { display: flex; align-items: center; gap: 15px; border-bottom: 2px solid #2ecc71; padding-bottom: 10px; margin-bottom: 20px; }
-    .logo-img { width: 50px; height: 50px; border-radius: 50%; }
-    h2 { margin: 0; color: white; }
-    div.stButton > button { height: 50px; border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white; }
-    div.stButton > button:hover { background: #2ecc71; color: black; }
+    /* Fixăm Header-ul și Butoanele sus */
+    .fixed-header {
+        position: sticky; top: 0; background: black; z-index: 999;
+        padding-bottom: 10px; border-bottom: 2px solid #2ecc71;
+    }
+    /* Zona de scroll pentru chat */
+    .chat-container {
+        height: 60vh; /* Ocupă restul ecranului */
+        overflow-y: auto;
+        margin-top: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. HEADER
-st.markdown(f"""
-<div class="header-box">
-    <img src="data:image/png;base64,{logo_base64}" class="logo-img">
-    <h2>TAXI INTEL</h2>
-</div>
-""", unsafe_allow_html=True)
+# 1. Zona care rămâne lipită sus
+st.markdown('<div class="fixed-header">', unsafe_allow_html=True)
+# Aici pui Header-ul (Logo + Titlu)
+# Aici pui Butoanele (c1, c2, c3, c4)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# 2. Zona de conținut care scrollează
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+# Aici pui logica de afișare (Chat, Trains, etc.)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 4. LOGICĂ BUTOANE (Inițializare o singură dată)
 if 'activ' not in st.session_state: st.session_state.activ = 'CHAT'
