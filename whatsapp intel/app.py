@@ -21,95 +21,31 @@ if "messages" not in st.session_state:
         {"role": "bot", "content": "Welcome to Taxi Intel. Standing by for London live updates."},
     ]
 
-# 4. DESIGN CSS (Negru Total & Profesional)
 st.markdown(f"""
 <style>
-    /* Fundalul paginii */
-    .stApp {{
-        background-color: #000000 !important;
+    /* Fundal negru total și eliminare margini default */
+    .stApp {{ background-color: #000000 !important; }}
+    
+    /* Ascunde tot ce nu vrei să se vadă */
+    #MainMenu, footer, header {{ visibility: hidden; }}
+    
+    /* Container principal */
+    .block-container {{ 
+        padding-top: 100px !important; 
+        padding-bottom: 100px !important;
+        max-width: 100% !important;
     }}
 
-    /* Ascundem elementele inutile de la Streamlit */
-    #MainMenu, footer, header {{visibility: hidden;}}
-    .stDeployButton {{display:none;}}
-
-    /* Containerul de Chat */
-    .chat-wrapper {{
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 100px;
-    }}
-
-    /* Bule de Chat */
-    .bubble {{
-        padding: 12px 16px;
-        border-radius: 18px;
-        margin: 8px 0;
-        max-width: 85%;
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 14px;
-        line-height: 1.4;
-    }}
-
-    .bot {{
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border-left: 4px solid #2ecc71;
-        align-self: flex-start;
-    }}
-
-    .user {{
-        background-color: #056162;
-        color: #ffffff;
-        align-self: flex-end;
-        border-bottom-right-radius: 4px;
-    }}
-
-    .system {{
-        color: #2ecc71;
-        text-align: center;
-        font-size: 10px;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: 15px 0;
-        letter-spacing: 1px;
-    }}
-
+    /* Bule de chat */
+    .bubble {{ padding: 12px 16px; border-radius: 18px; margin: 8px 10px; }}
+    .bot {{ background-color: #1a1a1a; color: white; border-left: 4px solid #2ecc71; align-self: flex-start; }}
+    .user {{ background-color: #056162; color: white; align-self: flex-end; }}
+    
+    /* Header fixat */
     .header-fix {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #080808;
-        padding: 10px 15px;
-        z-index: 1000;
-        border-bottom: 1px solid #1a1a1a;
-        display: flex;
-        align-items: center;
-        height: 100px; /* Am mărit de la 85 la 100 ca să aibă loc logo-ul */
-    }}
-
-    .logo-img {{
-        width: 70px !important; 
-        height: 70px !important;
-        border-radius: 50%;
-        border: 2px solid #2ecc71;
-        margin-right: 15px;
-        /* Am scos overflow: hidden ca să nu mai taie poza */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }}
-/* Definim animația de licărire */
-    @keyframes blink {{
-        0% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
-        50% {{ opacity: 0.4; text-shadow: 0 0 0px #2ecc71; }}
-        100% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
-    }}
-
-    .live-indicator {{
-        animation: blink 2s infinite; /* Licărește la fiecare 2 secunde */
+        position: fixed; top: 0; left: 0; right: 0; background: #000000;
+        padding: 15px; z-index: 999; border-bottom: 1px solid #222;
+        display: flex; align-items: center; height: 80px;
     }}
 </style>
 """, unsafe_allow_html=True)
