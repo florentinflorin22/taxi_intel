@@ -1,85 +1,61 @@
 import streamlit as st
+from datetime import datetime
 
 # 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel", layout="centered")
+st.set_page_config(page_title="Taxi Intel Pro", layout="centered")
 
-# 2. CSS PROFESIONAL
+# 2. CSS PROFESIONAL - Stil Dashboard
 st.markdown("""
 <style>
-    :root {
-        --bg-color: #000000;
-        --sidebar-bg: #111111;
-        --accent-yellow: #FFD700;
-        --text-white: #FFFFFF;
-    }
-    .stApp { background-color: var(--bg-color); color: var(--text-white); }
-    section[data-testid="stSidebar"] { background-color: var(--sidebar-bg); }
+    .stApp { background-color: #050505; color: #e0e0e0; }
+    section[data-testid="stSidebar"] { background-color: #111; border-right: 1px solid #333; }
     .data-card {
-        background: #1a1a1a;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid var(--accent-yellow);
-        margin-bottom: 12px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
+        padding: 18px;
+        border-radius: 12px;
+        border-left: 4px solid #FFD700;
+        margin-bottom: 15px;
+        border: 1px solid #222;
     }
-    .status-badge { font-weight: bold; color: #2ecc71; float: right; }
+    .metric-title { color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
+    .metric-value { font-size: 1.4em; color: #fff; font-weight: bold; }
+    .status-pill { background: #1a3a2a; color: #2ecc71; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; float: right; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. INITIALIZARE STARE
-if 'activ' not in st.session_state: st.session_state.activ = 'CHAT'
-if 'msgs' not in st.session_state: st.session_state.msgs = []
-
-# 4. DATE (Simulate - pot fi înlocuite cu API-uri)
+# 3. DATE CU ORA SOSIRII (ETA)
 transport_data = {
     "TRAINS": [
-        {"name": "Heathrow Express", "capacity": 8, "status": "On Time"},
-        {"name": "Gatwick Express", "capacity": 10, "status": "On Time"},
-        {"name": "Stansted Express", "capacity": 8, "status": "Delayed"}
-    ],
-    "AIRPORTS": [
-        {"name": "London City (LCY)", "arrivals": "Heavy", "delay": "None"},
-        {"name": "Heathrow (LHR)", "arrivals": "Moderate", "delay": "15 min"}
+        {"name": "Heathrow Express", "capacity": 8, "status": "On Time", "eta": "16:45"},
+        {"name": "Gatwick Express", "capacity": 10, "status": "On Time", "eta": "17:10"},
+        {"name": "Stansted Express", "capacity": 8, "status": "Delayed", "eta": "17:30"}
     ]
 }
 
-# 5. SIDEBAR
+# 4. SIDEBAR
 with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/3067/3067403.png", width=60) # Logo sugestiv
     st.title("TAXI INTEL")
+    st.caption(f"Update: {datetime.now().strftime('%H:%M:%S')}")
+    st.divider()
     if st.button("CHAT"): st.session_state.activ = 'CHAT'
     if st.button("TRAINS"): st.session_state.activ = 'TRAINS'
-    if st.button("LCY"): st.session_state.activ = 'LCY'
-    if st.button("LHR"): st.session_state.activ = 'LHR'
 
-# 6. LOGICĂ AFIȘARE
-if st.session_state.activ == 'CHAT':
-    st.subheader("💬 Chat")
-    for m in st.session_state.msgs:
-        st.write(f"💬 {m}")
-    text = st.chat_input("Scrie mesaj...")
-    if text:
-        st.session_state.msgs.append(text)
+# 5. LOGICĂ AFIȘARE PROFESIONALĂ
+if 'activ' not in st.session_state: st.session_state.activ = 'TRAINS'
 
-elif st.session_state.activ == 'TRAINS':
-    st.subheader("🚂 Express Trains (8+ Carriages)")
+if st.session_state.activ == 'TRAINS':
+    st.subheader("🚂 Live Train Arrivals")
     for train in transport_data["TRAINS"]:
         if train["capacity"] >= 8:
             st.markdown(f"""
                 <div class="data-card">
-                    <strong>{train["name"]}</strong>
-                    <span class="status-badge">{train["status"]}</span>
-                    <br><small>Capacity: {train["capacity"]} carriages</small>
+                    <span class="status-pill">{train["status"]}</span>
+                    <div class="metric-title">{train["name"]}</div>
+                    <div class="metric-value">ETA: {train["eta"]}</div>
+                    <div style="font-size: 0.8em; color: #555;">Capacity: {train["capacity"]} carriages</div>
                 </div>
             """, unsafe_allow_html=True)
-
-elif st.session_state.activ in ['LCY', 'LHR']:
-    st.subheader(f"✈️ {st.session_state.activ} Live Status")
-    for airport in transport_data["AIRPORTS"]:
-        if st.session_state.activ in airport["name"]:
-            st.markdown(f"""
-                <div class="data-card">
-                    <strong>{airport["name"]}</strong>
-                    <br>Arrivals Intensity: {airport["arrivals"]}
-                    <br>Current Delay: {airport["delay"]}
-                </div>
-            """, unsafe_allow_html=True)
+else:
+    st.write("### AI Assistant")
+    st.info("System ready for your input.")
