@@ -1,45 +1,20 @@
 import streamlit as st
 import base64
 
-# 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel", layout="centered")
 
-# Funcție logo
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as img_file: return base64.b64encode(img_file.read()).decode()
-    except: return ""
-
-logo_base64 = get_image_base64("logo.png")
-
+# CSS simplu doar pentru aspect
 st.markdown("""
 <style>
-    /* Fixăm Header-ul și Butoanele sus */
-    .fixed-header {
-        position: sticky; top: 0; background: black; z-index: 999;
-        padding-bottom: 10px; border-bottom: 2px solid #2ecc71;
-    }
-    /* Zona de scroll pentru chat */
-    .chat-container {
-        height: 60vh; /* Ocupă restul ecranului */
-        overflow-y: auto;
-        margin-top: 10px;
-    }
+    .stApp { background-color: #000000; color: white; }
+    div.stButton > button { border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
-# 1. Zona care rămâne lipită sus
-st.markdown('<div class="fixed-header">', unsafe_allow_html=True)
-# Aici pui Header-ul (Logo + Titlu)
-# Aici pui Butoanele (c1, c2, c3, c4)
-st.markdown('</div>', unsafe_allow_html=True)
+# 1. HEADER (Simplu, fără HTML complicat)
+st.title("TAXI INTEL")
 
-# 2. Zona de conținut care scrollează
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-# Aici pui logica de afișare (Chat, Trains, etc.)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# 4. LOGICĂ BUTOANE (Inițializare o singură dată)
+# 2. BUTOANE (Grid stabil)
 if 'activ' not in st.session_state: st.session_state.activ = 'CHAT'
 
 c1, c2 = st.columns(2)
@@ -52,22 +27,19 @@ if c4.button("LHR", use_container_width=True): st.session_state.activ = 'LHR'
 
 st.divider()
 
-# 5. CONȚINUT DINAMIC
-if st.session_state.activ == 'CHAT':
-    st.markdown("### 💬 Chat Live")
-    if "msgs" not in st.session_state: st.session_state.msgs = []
-    text = st.chat_input("Scrie mesaj...")
-    if text: st.session_state.msgs.append(text)
-    for m in st.session_state.msgs: st.write(f"💬 {m}")
+# 3. ZONA DE CHAT (Aici e secretul: folosim un container cu înălțime fixă)
+# Astfel, butoanele rămân sus, iar chat-ul se derulează în interiorul acestui container
+chat_container = st.container(height=500) 
 
-elif st.session_state.activ == 'TRAINS':
-    st.markdown("### 🚂 Status Trenuri")
-    st.info("Aici vor veni datele pentru trenuri.")
+with chat_container:
+    if st.session_state.activ == 'CHAT':
+        if "msgs" not in st.session_state: st.session_state.msgs = []
+        for m in st.session_state.msgs: st.write(f"💬 {m}")
+    else:
+        st.info(f"Detalii pentru {st.session_state.activ}")
 
-elif st.session_state.activ == 'LCY':
-    st.markdown("### ✈️ LCY Airport")
-    st.info("Aici vor veni datele pentru LCY.")
-
-elif st.session_state.activ == 'LHR':
-    st.markdown("### ✈️ LHR Airport")
-    st.info("Aici vor veni datele pentru LHR.")
+# 4. INPUT (Rămâne jos, fixat de Streamlit)
+text = st.chat_input("Scrie mesaj...")
+if text:
+    st.session_state.msgs.append(text)
+    st.rerun() # Reîmprospătăm ca să apară mesajul imediat
