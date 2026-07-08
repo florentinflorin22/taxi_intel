@@ -1,62 +1,39 @@
 import streamlit as st
-from datetime import datetime
+import requests
 
 # 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel London", layout="wide")
+st.set_page_config(page_title="Taxi Intel Live", layout="wide")
 
-# 2. CSS PROFESIONAL
-st.markdown("""
-<style>
-    .stApp { background-color: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; }
-    .station-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #FFD700;
-        margin-bottom: 12px;
-        border: 1px solid #333;
-    }
-    .station-name { font-weight: bold; color: #FFD700; font-size: 1.1em; }
-    .status-text { color: #888; font-size: 0.9em; }
-</style>
-""", unsafe_allow_html=True)
+# 2. FUNCȚIE PENTRU DATE LIVE (TfL API)
+def get_train_data(station_id):
+    # ID-ul pentru Waterloo este: 940GZZLUWLO
+    url = f"https://api.tfl.gov.uk/StopPoint/{station_id}/Arrivals"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    return None
 
-# 3. DATE - GĂRI + LONDON CITY AIRPORT
-hubs = [
-    "London Waterloo", "London Victoria", "Paddington", "Kings Cross", 
-    "Euston", "St Pancras International", "London Bridge", "Liverpool Street", 
-    "Charing Cross", "London City Airport (LCY)"
-]
+# 3. INTERFAȚĂ
+st.title("Live London Transport Data")
 
-# 4. SIDEBAR
-with st.sidebar:
-    st.title("📍 LONDON HUBS")
-    st.caption(f"Last sync: {datetime.now().strftime('%H:%M:%S')}")
-    st.divider()
-    selected_hub = st.selectbox("Select Location to Monitor:", hubs)
-    st.info("Monitor real-time demand for these 10 key London transport hubs.")
+# Selectie statie (folosim ID-uri reale TfL)
+stations = {
+    "Waterloo": "940GZZLUWLO",
+    "Paddington": "940GZZLUPAD",
+    "Victoria": "940GZZLUVIC"
+}
 
-# 5. LOGICĂ AFIȘARE
-st.title(f"Live Status: {selected_hub}")
+selected = st.selectbox("Select Station for Live Data:", list(stations.keys()))
 
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    st.markdown(f"""
-        <div class="station-card">
-            <div class="station-name">{selected_hub}</div>
-            <p class="status-text">Operational Status: <b>Active</b></p>
-            <p class="status-text">Current Demand: <b>High</b></p>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.subheader("Next Expected Peaks (Next 30m)")
-    # Simulare date
-    for i in range(1, 4):
-        st.markdown(f"""
-            <div class="station-card">
-                <div class="station-name">Peak Expected in {i*10} minutes</div>
-                <p class="status-text">Estimated passenger outflow: <b>{50 + (i*25)} pax</b></p>
-            </div>
-        """, unsafe_allow_html=True)
+if st.button("Fetch Live Data"):
+    data = get_train_data(stations[selected])
+    
+    if data:
+        # Sortăm după timpul de sosire
+        data.sort(key=lambda x: x['timeToStation'])
+        
+        for train in data[:5]: # Afișăm primele 5 sosiri
+            mins = train['timeToStation'] // 60
+            st.success(f"Train to {train['destinationName']} arriving in {mins} minutes.")
+    else:
+        st.error("Could not fetch live data.")
