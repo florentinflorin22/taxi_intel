@@ -13,10 +13,21 @@ logo_base64 = get_image_base64("logo.png")
 # CSS pentru eliminarea spațiilor albe inutile
 st.markdown("""
 <style>
-    .block-container { padding-top: 0rem; padding-bottom: 0rem; }
-    .stApp { background-color: #000000; color: white; }
-    button { border-radius: 10px !important; border: 1px solid #2ecc71 !important; background: #111 !important; color: white !important; }
-    button:hover { background: #2ecc71 !important; color: black !important; }
+    /* Ascunde tot ce este standard Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stApp {background: #000 !important; padding: 0 !important;}
+    
+    /* Container fix, fără margini */
+    .css-1544g2n {padding: 0 !important;} 
+    
+    /* Butoane stilizate strict */
+    div.stButton > button {
+        height: 60px !important;
+        font-weight: bold;
+        border: 2px solid #2ecc71 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
