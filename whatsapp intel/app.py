@@ -1,58 +1,160 @@
 import streamlit as st
-import urllib.request
-import json
-from streamlit_autorefresh import st_autorefresh
+import base64
 
-# 1. AUTO-REFRESH (Setat la 5 secunde pentru a fi "Live")
-st_autorefresh(interval=5000, key="datarefresh")
+# 1. SETĂRI PAGINĂ
+st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-st.set_page_config(page_title="Taxi Intel", layout="centered")
+# 2. FUNCȚIE LOGO (Asigură-te că ai fișierul logo.png în același folder)
+def get_image_base64(path):
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except:
+        return ""
 
-# 2. CSS FORȚAT pentru butoane 2x2 pe telefon
-st.markdown("""
+logo_base64 = get_image_base64("logo.png")
+
+# 3. ISTORIC MESAJE
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "system", "content": "SYSTEM: Live Feed Active (15m window)"},
+        {"role": "bot", "content": "Welcome to Taxi Intel. Standing by for London live updates."},
+    ]
+
+# 4. DESIGN CSS (Negru Total & Profesional)
+st.markdown(f"""
 <style>
-    .stApp { background-color: #000000; color: white; }
-    /* Grid forțat pe mobil */
-    [data-testid="column"] { width: 50% !important; flex: 1 1 50% !important; }
-    div.stButton > button { width: 100%; height: 50px; font-weight: bold; background-color: #1a1a1a; 
-                            color: #2ecc71; border: 1px solid #2ecc71; border-radius: 8px; }
-    div.stButton > button:hover { background-color: #2ecc71; color: white; }
-    .chat-box { background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 5px 0; border-left: 3px solid #3498db; }
-    .train-box { background: #0a0a0a; padding: 10px; border-radius: 5px; margin: 5px 0; border-left: 3px solid #2ecc71; }
+    /* Fundalul paginii */
+    .stApp {{
+        background-color: #000000 !important;
+    }}
+
+    /* Ascundem elementele inutile de la Streamlit */
+    #MainMenu, footer, header {{visibility: hidden;}}
+    .stDeployButton {{display:none;}}
+
+    /* Containerul de Chat */
+    .chat-wrapper {{
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 100px;
+    }}
+
+    /* Bule de Chat */
+    .bubble {{
+        padding: 12px 16px;
+        border-radius: 18px;
+        margin: 8px 0;
+        max-width: 85%;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+    }}
+
+    .bot {{
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border-left: 4px solid #2ecc71;
+        align-self: flex-start;
+    }}
+
+    .user {{
+        background-color: #056162;
+        color: #ffffff;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }}
+
+    .system {{
+        color: #2ecc71;
+        text-align: center;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin: 15px 0;
+        letter-spacing: 1px;
+    }}
+
+    .header-fix {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #080808;
+        padding: 10px 15px;
+        z-index: 1000;
+        border-bottom: 1px solid #1a1a1a;
+        display: flex;
+        align-items: center;
+        height: 100px; /* Am mărit de la 85 la 100 ca să aibă loc logo-ul */
+    }}
+
+    .logo-img {{
+        width: 70px !important; 
+        height: 70px !important;
+        border-radius: 50%;
+        border: 2px solid #2ecc71;
+        margin-right: 15px;
+        /* Am scos overflow: hidden ca să nu mai taie poza */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }}
+/* Definim animația de licărire */
+    @keyframes blink {{
+        0% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
+        50% {{ opacity: 0.4; text-shadow: 0 0 0px #2ecc71; }}
+        100% {{ opacity: 1; text-shadow: 0 0 8px #2ecc71; }}
+    }}
+
+    .live-indicator {{
+        animation: blink 2s infinite; /* Licărește la fiecare 2 secunde */
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# Inițializare
-if 'page' not in st.session_state: st.session_state.page = 'CHAT'
-if 'db' not in st.session_state: st.session_state.db = []
+# 5. AFIȘARE HEADER
+st.markdown(f"""
+<div class="header-fix">
+<div class="logo-img">
+<img src="data:image/png;base64,{logo_base64}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.5);">
+</div>
+<div style="margin-left: -5px; display: flex; flex-direction: column; justify-content: center;">
+<div style="color:white; font-weight:bold; font-size:22px; line-height:1; margin:0;">
+                TAXI INTEL
+</div>
+<div class="live-indicator" style="
+                color: #2ecc71; 
+                font-size: 11px; 
+                margin-top: 5px; 
+                letter-spacing: 1px;
+                font-weight: bold;
+            ">
+                ● LONDON LIVE FEED
+</div>
+</div>
+</div>
+<div style="margin-top: 110px;"></div>
+""", unsafe_allow_html=True)
 
-# Meniu butoane (2x2 fixat)
-col1, col2 = st.columns(2)
-col3, col4 = st.columns(2)
+# 6. AFIȘARE MESAJE
+st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+for msg in st.session_state.messages:
+    if msg["role"] == "system":
+        st.markdown(f'<div class="system">{msg["content"]}</div>', unsafe_allow_html=True)
+    elif msg["role"] == "bot":
+        st.markdown(f'<div class="bubble bot">{msg["content"]}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="bubble user">{msg["content"]}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-with col1:
-    if st.button("CHAT"): st.session_state.page = 'CHAT'
-with col2:
-    if st.button("TRAINS"): st.session_state.page = 'TRAINS'
-with col3:
-    if st.button("LCY"): st.session_state.page = 'LCY'
-with col4:
-    if st.button("LHR"): st.session_state.page = 'LHR'
+# 7. INPUT (Tastatura Streamlit, acum stilizată prin CSS-ul nativ)
+user_input = st.chat_input("Type a message...")
 
-st.markdown("---")
-
-# LOGICĂ
-if st.session_state.page == 'CHAT':
-    user_input = st.chat_input("Type update...")
-    if user_input: st.session_state.db.append(user_input.upper())
-    for msg in reversed(st.session_state.db):
-        st.markdown(f'<div class="chat-box">{msg}</div>', unsafe_allow_html=True)
-elif st.session_state.page == 'TRAINS':
-    stations = {"ST PANCRAS": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC"}
-    for name, code in stations.items():
-        try:
-            url = f"https://huxley2.azurewebsites.net/arrivals/{code}?rows=1"
-            with urllib.request.urlopen(url, timeout=2) as res:
-                t = json.loads(res.read().decode()).get("trainServices", [])[0]
-                st.markdown(f'<div class="train-box"><b>{name}</b><br>🚆 {t.get("sta")} | {t.get("origin", [{}])[0].get("locationName")}</div>', unsafe_allow_html=True)
-        except: st.markdown(f'<div class="train-box">{name}: Info N/A</div>', unsafe_allow_html=True)
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    # Aici poți adăuga un mic bot care răspunde automat
+    if "hello" in user_input.lower():
+        st.session_state.messages.append({"role": "bot", "content": "Hello driver! How can I help you today?"})
+    st.rerun()
