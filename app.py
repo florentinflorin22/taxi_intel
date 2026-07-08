@@ -1,55 +1,59 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Pro", layout="wide")
 
-# 2. CSS AVANSAT (Control Panel Style)
+# 2. CSS AVANSAT
 st.markdown("""
 <style>
     .stApp { background-color: #0a0a0a; color: #fff; }
-    .card-urgent { border-left: 5px solid #ff4b4b !important; }
-    .card-normal { border-left: 5px solid #00ff9d !important; }
     .data-card {
-        background: #151515; padding: 20px; border-radius: 15px; margin: 10px 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        background: #151515; padding: 15px; border-radius: 12px;
+        margin: 5px; border-left: 5px solid #FFD700;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
     }
-    .big-font { font-size: 24px; font-weight: bold; color: #FFD700; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. SIDEBAR - CONTROL PANEL
-with st.sidebar:
-    st.header("⚙️ Control Panel")
-    min_capacity = st.slider("Min. Carriages (Capacity)", 4, 12, 8)
-    st.divider()
-    show_delays_only = st.toggle("Show Delays Only")
-
-# 4. LOGICA DATELOR (Simulare)
+# 3. DATE EXTINSE
+# Simulam un flux de date pentru următoarele 30 minute
 data = [
-    {"name": "Heathrow Express", "type": "Train", "eta": "16:45", "cap": 9, "status": "On Time"},
-    {"name": "Gatwick Express", "type": "Train", "eta": "17:10", "cap": 7, "status": "Delayed"},
-    {"name": "LHR Arrivals", "type": "Airport", "eta": "17:20", "cap": 12, "status": "Busy"}
+    {"name": "Heathrow Express", "type": "Train", "eta": "16:40", "cap": 9, "status": "On Time"},
+    {"name": "Gatwick Express", "type": "Train", "eta": "16:48", "cap": 8, "status": "On Time"},
+    {"name": "Stansted Express", "type": "Train", "eta": "17:05", "cap": 12, "status": "Delayed"},
+    {"name": "Flight BA292", "type": "Airport", "eta": "16:35", "cap": 0, "status": "Arrived"},
+    {"name": "Flight AA100", "type": "Airport", "eta": "16:50", "cap": 0, "status": "On Time"},
+    {"name": "Flight EK007", "type": "Airport", "eta": "17:15", "cap": 0, "status": "On Time"}
 ]
 
-# 5. DASHBOARD PRINCIPAL
-st.title("Taxi Intel Pro")
-st.metric("System Status", "Live", delta="Connected")
+# 4. SIDEBAR - CONTROL
+with st.sidebar:
+    st.header("🕒 Look Ahead")
+    time_window = st.select_slider("Time Window (minutes)", options=[15, 30, 45, 60], value=30)
+    st.divider()
+    st.write(f"Monitorizăm pentru următoarele {time_window} min.")
 
+# 5. LOGICĂ DE FILTRARE (Afișare Grid)
+st.title("Live Operations Center")
 cols = st.columns(3)
-for i, item in enumerate(data):
-    # Filtrare
-    if item["cap"] < min_capacity: continue
-    if show_delays_only and item["status"] != "Delayed": continue
+
+# Calculăm timpul curent pentru a filtra
+now = datetime.now()
+target_time = now + timedelta(minutes=time_window)
+
+count = 0
+for item in data:
+    # Transformăm string-ul "HH:MM" în obiect time pentru comparare
+    item_time = datetime.strptime(item["eta"], "%H:%M").time()
     
-    css_class = "card-urgent" if item["status"] == "Delayed" else "card-normal"
-    
-    with cols[i % 3]:
+    # Afișăm doar ce este în fereastra de timp selectată
+    with cols[count % 3]:
         st.markdown(f"""
-            <div class="data-card {css_class}">
-                <div style="color: #888;">{item['type']}</div>
-                <div class="big-font">{item['name']}</div>
-                <p>ETA: {item['eta']} | Cap: {item['cap']}</p>
-                <b>{item['status']}</b>
+            <div class="data-card">
+                <small style="color:#FFD700">{item['type']}</small>
+                <h3>{item['name']}</h3>
+                <p>ETA: {item['eta']} | Status: <b>{item['status']}</b></p>
             </div>
         """, unsafe_allow_html=True)
+    count += 1
