@@ -1,7 +1,7 @@
 import streamlit as st
 import base64
 
-st.set_page_config(page_title="Taxi Intel Live", layout="centered")
+st.set_page_config(page_title="Taxi Intel", layout="centered")
 
 # Funcție pentru logo
 def get_image_base64(path):
@@ -11,48 +11,48 @@ def get_image_base64(path):
 
 logo_base64 = get_image_base64("logo.png")
 
-# CSS pentru Header Fix + Butoane
-st.markdown(f"""
+# CSS pentru un design curat pe mobil
+st.markdown("""
 <style>
-    .stApp {{ background-color: #000000 !important; }}
-    .header-container {{
-        position: fixed; top: 0; left: 0; width: 100%; height: 130px;
-        background: #000000; z-index: 999; padding: 10px; border-bottom: 2px solid #2ecc71;
-    }}
-    .logo-img {{ width: 50px; height: 50px; border-radius: 50%; float: left; margin-right: 10px; }}
-    .content-area {{ margin-top: 140px; }} /* Spațiu ca să nu se suprapună */
+    .stApp { background-color: #000000; }
+    .header-bar { display: flex; align-items: center; padding: 10px; border-bottom: 2px solid #2ecc71; margin-bottom: 20px; }
+    .logo-box { width: 40px; height: 40px; margin-right: 15px; }
+    div.stButton > button { width: 100%; border-radius: 8px; border: 1px solid #2ecc71; background: #111; color: #fff; }
+    div.stButton > button:hover { background: #2ecc71; color: #000; }
 </style>
 """, unsafe_allow_html=True)
 
-# Afișare Header Fix
-st.markdown(f"""
-<div class="header-container">
-    <img src="data:image/png;base64,{logo_base64}" class="logo-img">
-    <div style="color:white; font-size:18px; font-weight:bold;">TAXI INTEL</div>
-    <div style="color:#2ecc71; font-size:12px;">● LONDON LIVE FEED</div>
-</div>
-""", unsafe_allow_html=True)
+# 1. HEADER (Logo sus)
+st.markdown(f'<div class="header-bar"><img src="data:image/png;base64,{logo_base64}" class="logo-box"> <h3>TAXI INTEL</h3></div>', unsafe_allow_html=True)
 
-# 5. ZONA DE CONȚINUT (Aici încep butoanele și chat-ul)
-st.markdown('<div class="content-area"></div>', unsafe_allow_html=True)
+# 2. MENIU BUTOANE (Grid 2x2)
+if 'activ' not in st.session_state: st.session_state.activ = 'CHAT'
 
-# Butoane 2x2
-if 'page' not in st.session_state: st.session_state.page = 'CHAT'
-col1, col2 = st.columns(2)
-col3, col4 = st.columns(2)
+c1, c2 = st.columns(2)
+c3, c4 = st.columns(2)
 
-if col1.button("CHAT", use_container_width=True): st.session_state.page = 'CHAT'
-if col2.button("TRAINS", use_container_width=True): st.session_state.page = 'TRAINS'
-if col3.button("LCY", use_container_width=True): st.session_state.page = 'LCY'
-if col4.button("LHR", use_container_width=True): st.session_state.page = 'LHR'
+if c1.button("CHAT"): st.session_state.activ = 'CHAT'
+if c2.button("TRAINS"): st.session_state.activ = 'TRAINS'
+if c3.button("LCY"): st.session_state.activ = 'LCY'
+if c4.button("LHR"): st.session_state.activ = 'LHR'
 
 st.markdown("---")
 
-# Logica de afișare
-if st.session_state.page == 'CHAT':
-    if "messages" not in st.session_state: st.session_state.messages = []
-    user_input = st.chat_input("Scrie ceva...")
-    if user_input: st.session_state.messages.append(user_input)
-    for msg in st.session_state.messages: st.write(f"💬 {msg}")
-else:
-    st.info(f"Pagina {st.session_state.page} este în lucru.")
+# 3. CONȚINUT DINAMIC (Fereastra care se schimbă)
+st.subheader(f"Pagina: {st.session_state.activ}")
+
+if st.session_state.activ == 'CHAT':
+    if "msgs" not in st.session_state: st.session_state.msgs = []
+    text = st.chat_input("Scrie mesaj...")
+    if text: st.session_state.msgs.append(text)
+    for m in st.session_state.msgs: st.write(f"💬 {m}")
+
+elif st.session_state.activ == 'TRAINS':
+    st.write("📋 Detalii actualizate pentru trenuri...")
+    # Aici vei adăuga informațiile despre trenuri
+
+elif st.session_state.activ == 'LCY':
+    st.write("✈️ Stare zboruri LCY...")
+
+elif st.session_state.activ == 'LHR':
+    st.write("✈️ Stare zboruri LHR...")
