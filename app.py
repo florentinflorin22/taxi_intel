@@ -1,59 +1,62 @@
 import streamlit as st
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel London", layout="wide")
 
-# 2. CSS AVANSAT - London Transport Style
+# 2. CSS PROFESIONAL
 st.markdown("""
 <style>
-    .stApp { background-color: #050505; color: #fff; }
+    .stApp { background-color: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; }
     .station-card {
-        background: #1a1a1a; padding: 15px; border-radius: 8px;
-        border-left: 5px solid #FFD700; margin-bottom: 10px;
+        background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #FFD700;
+        margin-bottom: 12px;
+        border: 1px solid #333;
     }
-    .station-name { font-weight: bold; color: #FFD700; font-size: 1.2em; }
+    .station-name { font-weight: bold; color: #FFD700; font-size: 1.1em; }
+    .status-text { color: #888; font-size: 0.9em; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATE CU GĂRI ȘI AEROPORTURI
-london_hubs = {
-    "Stations": [
-        {"name": "London Waterloo", "status": "Busy", "eta": "16:30"},
-        {"name": "London Victoria", "status": "Moderate", "eta": "16:35"},
-        {"name": "Paddington", "status": "High Volume", "eta": "16:40"},
-        {"name": "Kings Cross", "status": "Active", "eta": "16:50"}
-    ],
-    "Airports": [
-        {"name": "Heathrow (LHR)", "origin": "JFK", "eta": "16:45"},
-        {"name": "Gatwick (LGW)", "origin": "DXB", "eta": "17:05"}
-    ]
-}
+# 3. DATE - GĂRI + LONDON CITY AIRPORT
+hubs = [
+    "London Waterloo", "London Victoria", "Paddington", "Kings Cross", 
+    "Euston", "St Pancras International", "London Bridge", "Liverpool Street", 
+    "Charing Cross", "London City Airport (LCY)"
+]
 
-# 4. SIDEBAR - SELECTOR HUB
+# 4. SIDEBAR
 with st.sidebar:
-    st.title("📍 LONDON HUB")
-    category = st.radio("Select Zone:", ["Stations", "Airports"])
+    st.title("📍 LONDON HUBS")
+    st.caption(f"Last sync: {datetime.now().strftime('%H:%M:%S')}")
     st.divider()
-    st.info("Monitorizează fluxul de pasageri pentru a identifica zonele cu potențial maxim de cursă.")
+    selected_hub = st.selectbox("Select Location to Monitor:", hubs)
+    st.info("Monitor real-time demand for these 10 key London transport hubs.")
 
 # 5. LOGICĂ AFIȘARE
-st.title(f"Live Status: {category}")
+st.title(f"Live Status: {selected_hub}")
 
-cols = st.columns(2)
-for i, item in enumerate(london_hubs[category]):
-    with cols[i % 2]:
-        if category == "Stations":
-            st.markdown(f"""
-                <div class="station-card">
-                    <div class="station-name">{item['name']}</div>
-                    <p>Status: {item['status']}<br>Next peak: {item['eta']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class="station-card">
-                    <div class="station-name">{item['name']}</div>
-                    <p>Origin: {item['origin']}<br>ETA: {item['eta']}</p>
-                </div>
-            """, unsafe_allow_html=True)
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    st.markdown(f"""
+        <div class="station-card">
+            <div class="station-name">{selected_hub}</div>
+            <p class="status-text">Operational Status: <b>Active</b></p>
+            <p class="status-text">Current Demand: <b>High</b></p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.subheader("Next Expected Peaks (Next 30m)")
+    # Simulare date
+    for i in range(1, 4):
+        st.markdown(f"""
+            <div class="station-card">
+                <div class="station-name">Peak Expected in {i*10} minutes</div>
+                <p class="status-text">Estimated passenger outflow: <b>{50 + (i*25)} pax</b></p>
+            </div>
+        """, unsafe_allow_html=True)
