@@ -1,6 +1,23 @@
 import streamlit as st
 import requests
 
+# 1. ACEASTA FUNCȚIE TREBUIE PUSĂ SUS, ÎNAINTE DE ORICE BUTON
+# Ea "îngheață" datele 15 minute ca să nu mai tragă de la server la fiecare click
+@st.cache_data(ttl=900)
+def fetch_train_data():
+    # Aici pui link-ul API-ului tău (cu timeout ca să nu blocheze aplicația)
+    # response = requests.get(url, timeout=2)
+    return "date_simulate"
+
+# 2. SETĂRI PAGINĂ (Configurarea vine după importuri și funcții)
+st.set_page_config(page_title="Taxi Intel", layout="centered")
+
+# 3. CSS-UL TĂU... (Aici urmează restul codului cu st.markdown)
+
+# 4. HEADER-UL...
+
+# 5. MENIUL DE BUTOANE...
+
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel", layout="centered")
 
