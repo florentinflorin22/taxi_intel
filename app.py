@@ -2,71 +2,54 @@ import streamlit as st
 from datetime import datetime
 
 # 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel Pro", layout="centered")
+st.set_page_config(page_title="Taxi Intel Pro", layout="wide")
 
-# 2. CSS PROFESIONAL
+# 2. CSS AVANSAT (Control Panel Style)
 st.markdown("""
 <style>
-    .stApp { background-color: #050505; color: #e0e0e0; font-family: sans-serif; }
-    section[data-testid="stSidebar"] { background-color: #111; border-right: 1px solid #333; }
+    .stApp { background-color: #0a0a0a; color: #fff; }
+    .card-urgent { border-left: 5px solid #ff4b4b !important; }
+    .card-normal { border-left: 5px solid #00ff9d !important; }
     .data-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
-        padding: 18px;
-        border-radius: 12px;
-        border-left: 4px solid #FFD700;
-        margin-bottom: 15px;
-        border: 1px solid #222;
+        background: #151515; padding: 20px; border-radius: 15px; margin: 10px 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
-    .metric-title { color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
-    .metric-value { font-size: 1.4em; color: #fff; font-weight: bold; margin: 5px 0; }
-    .status-pill { background: #1a3a2a; color: #2ecc71; padding: 2px 8px; border-radius: 12px; font-size: 0.7em; float: right; }
+    .big-font { font-size: 24px; font-weight: bold; color: #FFD700; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATE (Simulate - pregătite pentru API-uri viitoare)
-transport_data = {
-    "TRAINS": [
-        {"name": "Heathrow Express", "status": "On Time", "eta": "16:45", "cap": 8},
-        {"name": "Gatwick Express", "status": "On Time", "eta": "17:10", "cap": 10}
-    ],
-    "AIRPORTS": [
-        {"name": "London City (LCY)", "origin": "Amsterdam (AMS)", "status": "Active", "delay": "None", "eta": "16:55"},
-        {"name": "Heathrow (LHR)", "origin": "New York (JFK)", "status": "Busy", "delay": "15 min", "eta": "17:20"}
-    ]
-}
-
-# 4. SIDEBAR
+# 3. SIDEBAR - CONTROL PANEL
 with st.sidebar:
-    st.title("TAXI INTEL")
-    st.caption(f"Update: {datetime.now().strftime('%H:%M:%S')}")
+    st.header("⚙️ Control Panel")
+    min_capacity = st.slider("Min. Carriages (Capacity)", 4, 12, 8)
     st.divider()
-    if st.button("🚂 TRAINS"): st.session_state.activ = 'TRAINS'
-    if st.button("✈️ AIRPORTS"): st.session_state.activ = 'AIRPORTS'
+    show_delays_only = st.toggle("Show Delays Only")
 
-# 5. LOGICĂ AFIȘARE
-if 'activ' not in st.session_state: st.session_state.activ = 'TRAINS'
+# 4. LOGICA DATELOR (Simulare)
+data = [
+    {"name": "Heathrow Express", "type": "Train", "eta": "16:45", "cap": 9, "status": "On Time"},
+    {"name": "Gatwick Express", "type": "Train", "eta": "17:10", "cap": 7, "status": "Delayed"},
+    {"name": "LHR Arrivals", "type": "Airport", "eta": "17:20", "cap": 12, "status": "Busy"}
+]
 
-if st.session_state.activ == 'TRAINS':
-    st.subheader("🚂 Train Monitoring")
-    for t in transport_data["TRAINS"]:
+# 5. DASHBOARD PRINCIPAL
+st.title("Taxi Intel Pro")
+st.metric("System Status", "Live", delta="Connected")
+
+cols = st.columns(3)
+for i, item in enumerate(data):
+    # Filtrare
+    if item["cap"] < min_capacity: continue
+    if show_delays_only and item["status"] != "Delayed": continue
+    
+    css_class = "card-urgent" if item["status"] == "Delayed" else "card-normal"
+    
+    with cols[i % 3]:
         st.markdown(f"""
-            <div class="data-card">
-                <span class="status-pill">{t["status"]}</span>
-                <div class="metric-title">{t["name"]}</div>
-                <div class="metric-value">ETA: {t["eta"]}</div>
-                <div style="font-size: 0.8em; color: #555;">Capacity: {t["cap"]} carriages</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-elif st.session_state.activ == 'AIRPORTS':
-    st.subheader("✈️ Airport Arrivals")
-    for a in transport_data["AIRPORTS"]:
-        st.markdown(f"""
-            <div class="data-card">
-                <span class="status-pill">{a["status"]}</span>
-                <div class="metric-title">{a["name"]}</div>
-                <div class="metric-value">ETA: {a["eta"]}</div>
-                <div style="font-size: 0.9em; color: #fff;"><strong>Origin:</strong> {a["origin"]}</div>
-                <div style="font-size: 0.8em; color: #f39c12;">Delay: {a["delay"]}</div>
+            <div class="data-card {css_class}">
+                <div style="color: #888;">{item['type']}</div>
+                <div class="big-font">{item['name']}</div>
+                <p>ETA: {item['eta']} | Cap: {item['cap']}</p>
+                <b>{item['status']}</b>
             </div>
         """, unsafe_allow_html=True)
