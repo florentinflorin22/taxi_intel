@@ -1,63 +1,29 @@
 import streamlit as st
-import base64
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Taxi Intel", layout="wide")
+st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as img_file: return base64.b64encode(img_file.read()).decode()
-    except: return ""
-
-logo_base64 = get_image_base64("logo.png")
-
-# CSS pentru eliminarea spațiilor albe inutile
-st.markdown("""
-<style>
-    /* Ascunde tot ce este standard Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stApp {background: #000 !important; padding: 0 !important;}
+# 1. CODUL HTML/CSS "PIXEL-PERFECT"
+# Aici construim exact layout-ul din schița ta
+app_html = """
+<div style="background-color: black; color: white; height: 100vh; padding: 20px; font-family: sans-serif;">
+    <div style="display: flex; align-items: center; border-bottom: 2px solid #2ecc71; padding-bottom: 10px;">
+        <div style="width: 50px; height: 50px; background: #333; border-radius: 50%; margin-right: 15px;"></div>
+        <h2 style="margin: 0;">TAXI INTEL</h2>
+    </div>
     
-    /* Container fix, fără margini */
-    .css-1544g2n {padding: 0 !important;} 
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+        <button onclick="parent.postMessage('CHAT', '*')" style="height: 50px; border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white;">CHAT</button>
+        <button onclick="parent.postMessage('TRAINS', '*')" style="height: 50px; border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white;">TRAINS</button>
+        <button onclick="parent.postMessage('LCY', '*')" style="height: 50px; border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white;">LCY</button>
+        <button onclick="parent.postMessage('LHR', '*')" style="height: 50px; border-radius: 10px; border: 1px solid #2ecc71; background: #111; color: white;">LHR</button>
+    </div>
     
-    /* Butoane stilizate strict */
-    div.stButton > button {
-        height: 60px !important;
-        font-weight: bold;
-        border: 2px solid #2ecc71 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+    <div id="content" style="margin-top: 30px; border: 1px solid #333; padding: 15px; border-radius: 10px;">
+        <h3>Selectează o opțiune de mai sus</h3>
+    </div>
+</div>
+"""
 
-# Header Compact
-col_img, col_title = st.columns([1, 4])
-with col_img:
-    st.markdown(f'<img src="data:image/png;base64,{logo_base64}" style="width:50px; border-radius:50%">', unsafe_allow_html=True)
-with col_title:
-    st.markdown("<h2 style='margin:0'>TAXI INTEL</h2>", unsafe_allow_html=True)
-
-st.divider()
-
-# Butoane compacte (Grid)
-c1, c2 = st.columns(2)
-c3, c4 = st.columns(2)
-
-if 'activ' not in st.session_state: st.session_state.activ = 'CHAT'
-
-if c1.button("CHAT", use_container_width=True): st.session_state.activ = 'CHAT'
-if c2.button("TRAINS", use_container_width=True): st.session_state.activ = 'TRAINS'
-if c3.button("LCY", use_container_width=True): st.session_state.activ = 'LCY'
-if c4.button("LHR", use_container_width=True): st.session_state.activ = 'LHR'
-
-st.divider()
-
-# Zona de conținut (începe imediat sub butoane)
-if st.session_state.activ == 'CHAT':
-    if "msgs" not in st.session_state: st.session_state.msgs = []
-    text = st.chat_input("Scrie mesaj...")
-    if text: st.session_state.msgs.append(text)
-    for m in st.session_state.msgs: st.write(f"💬 {m}")
-else:
-    st.info(f"Detalii pentru: {st.session_state.activ}")
+# 2. RENDERIZARE
+components.html(app_html, height=800)
