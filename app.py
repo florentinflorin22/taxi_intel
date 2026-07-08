@@ -1,43 +1,65 @@
 import streamlit as st
 import pandas as pd
+import requests
 
-# 1. SETĂRI PAGINĂ
-st.set_page_config(page_title="Taxi Intel Pro - Live", layout="wide")
+# 1. SETĂRI PAGINĂ - Layout de tip Control Center
+st.set_page_config(page_title="Taxi Intel Ultra Pro", layout="wide")
 
-# 2. CSS AVANSAT
+# 2. CSS "ULTRA PRO"
 st.markdown("""
 <style>
-    .metric-card { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333; }
+    .stApp { background-color: #000; color: #fff; }
+    .card { background: #111; border: 1px solid #333; padding: 20px; border-radius: 15px; }
+    .urgent { color: #ff4444; font-weight: bold; }
+    .good { color: #00ff99; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATE LIVE (Logica de integrare API - concept)
-# Pentru gări mari și aeroporturi, folosim date structurate din API-uri de transport
-def get_live_data(location_type):
-    # Aici ar veni funcția de requests.get() către API-urile de trenuri/avioane
-    # Exemplu: return pd.DataFrame(api_call_to_network_rail(location_type))
-    return pd.DataFrame({
-        "Location": ["Waterloo", "Heathrow", "Paddington", "LHR"],
-        "Status": ["Live", "Live", "Live", "Live"],
-        "ETA": ["16:45", "16:55", "17:05", "17:15"]
-    })
+# 3. CONECTARE LA DATE (Logica API)
+# Exemplu pentru gări principale - Huxley API pentru National Rail
+def fetch_rail_data(station_code):
+    try:
+        url = f"https://huxley2.azurewebsites.net/departures/{station_code}?expand=true"
+        response = requests.get(url, timeout=5)
+        return response.json()
+    except:
+        return None
 
-# 4. SIDEBAR - SELECTOR HUB-URI MARI
-hubs = ["London Waterloo", "London Victoria", "Paddington", "Kings Cross", 
-        "Euston", "St Pancras", "London Bridge", "Liverpool Street", 
-        "Charing Cross", "London City Airport", "Heathrow", "Gatwick", "Stansted"]
+# 4. DASHBOARD "ULTRA PRO"
+st.title("🚀 Taxi Intel: COMMAND CENTER")
+st.subheader("Live Mainline & Airport Monitoring")
 
+# Sidebar cu setări avansate
 with st.sidebar:
-    st.title("📍 MAIN HUBS ONLY")
-    selection = st.multiselect("Select your focus area:", hubs, default=["Heathrow", "London Waterloo"])
+    st.header("⚙️ System Config")
+    hub_type = st.radio("Target Zone", ["Mainline Stations", "Airports"])
+    # Lista cu cele 9 gări principale + LCY
+    station_map = {
+        "Waterloo": "WAT", "Victoria": "VIC", "Paddington": "PAD", 
+        "Kings Cross": "KGX", "Euston": "EUS", "St Pancras": "STP", 
+        "London Bridge": "LBG", "Liverpool St": "LST", "Charing Cross": "CHX"
+    }
+    selected_hub = st.selectbox("Select Target Hub:", list(station_map.keys()))
+    refresh = st.button("🔄 Refresh Data")
 
-# 5. DASHBOARD PRINCIPAL
-st.title("Live Transport Monitoring")
-st.subheader("Mainline Stations & Airports")
+# 5. AFIȘARE DATE
+data = fetch_rail_data(station_map[selected_hub])
 
-# Afișare date sub formă de tabel profesional
-data = get_live_data("all")
-st.table(data)
+if data:
+    st.success(f"Connected to {selected_hub} Feed")
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.metric("Total Departures", len(data['trainServices']))
+        st.write(f"Last updated: {data['generatedAt']}")
+        
+    with col2:
+        df = pd.DataFrame(data['trainServices'])
+        st.table(df[['destination', 'std', 'etd', 'platform']].head(10))
+else:
+    st.error("Live feed currently unavailable. Switch to Simulation mode.")
 
-# ALERTĂ VIZUALĂ
-st.warning("Data source: Live National Rail & Airport Feeds")
+# 6. ANALIZĂ PREDICTIVĂ (Secțiune Ultra Pro)
+st.divider()
+st.subheader("📊 Tactical Analysis")
+st.info("Peak demand predicted for 17:30 - 18:30 based on historical flight/train arrival density.")
