@@ -2,6 +2,19 @@ import streamlit as st
 
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel", layout="centered")
+st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<style>
+    /* Forțăm totul să fie pe tot ecranul, fără margini inutile */
+    .block-container { 
+        padding-left: 1rem !important; 
+        padding-right: 1rem !important; 
+        padding-top: 1rem !important; 
+    }
+    /* Să nu avem scroll orizontal pe mobil */
+    body { overflow-x: hidden; }
+</style>
+""", unsafe_allow_html=True)
 
 # 2. CSS PENTRU ASPECT CURAT
 st.markdown("""
