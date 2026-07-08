@@ -4,16 +4,25 @@ import base64
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Live", layout="centered")
 
-# 2. FUNCȚIE LOGO (Asigură-te că ai fișierul logo.png în același folder)
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except:
-        return ""
-
-logo_base64 = get_image_base64("logo.png")
-
+.logo-img {
+        width: 60px !important; 
+        height: 60px !important;
+        border-radius: 50%;
+        border: 2px solid #2ecc71;
+        margin-right: 15px;
+        /* Aici fixăm dimensiunea imaginii în interiorul containerului */
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .logo-img img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
 # 3. ISTORIC MESAJE
 if "messages" not in st.session_state:
     st.session_state.messages = [
