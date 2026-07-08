@@ -1,68 +1,57 @@
 import streamlit as st
+import urllib.request
 import json
-import os
 
-# CONFIGURATION AND DESIGN
+# PAGE SETTINGS
 st.set_page_config(page_title="Taxi Intel", layout="centered")
 
+# CSS pentru butoane mari și clare
 st.markdown("""
 <style>
     .stApp { background-color: #000000; color: white; }
-    div.stButton > button { width: 100%; height: 80px; font-weight: bold; background-color: #1a1a1a; 
-                            color: #fff; border: 1px solid #333; border-radius: 10px; font-size: 12px; }
-    div.stButton > button:hover { background-color: #2ecc71; }
-    .box { background: #0a0a0a; padding: 15px; border-radius: 8px; border-left: 4px solid #2ecc71; margin-top: 10px; }
-    .stChatInput textarea { background-color: #1a1a1a !important; color: white !important; }
+    div.stButton > button { width: 100%; height: 50px; font-weight: bold; background-color: #1a1a1a; color: #2ecc71; border: 1px solid #2ecc71; }
+    div.stButton > button:hover { background-color: #2ecc71; color: white; }
+    .chat-box { background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 5px 0; border-left: 3px solid #3498db; }
+    .train-box { background: #0a0a0a; padding: 10px; border-radius: 5px; margin: 5px 0; border-left: 3px solid #2ecc71; }
 </style>
 """, unsafe_allow_html=True)
 
-# DATABASE FOR SYNCHRONIZATION
-DB_FILE = "chat_db.json"
-def load_db():
-    if not os.path.exists(DB_FILE): return []
-    try:
-        with open(DB_FILE, "r") as f: return json.load(f)
-    except: return []
+# Inițializare memorie
+if 'page' not in st.session_state: st.session_state.page = 'TRAINS'
+if 'db' not in st.session_state: st.session_state.db = []
 
-def save_db(data):
-    with open(DB_FILE, "w") as f: json.dump(data, f)
-
-# INITIALIZATION
-if 'page' not in st.session_state: st.session_state.page = 'CHAT'
-
-# 2x2 GRID (The 4 squares at the top)
+# Meniu de navigare: 4 butoane (2x2) pentru acces rapid
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
 
 if col1.button("CHAT"): st.session_state.page = 'CHAT'
-if col2.button("STATIONS"): st.session_state.page = 'STATIONS'
-if col3.button("LCY AIRPORT"): st.session_state.page = 'LCY'
-if col4.button("HEATHROW"): st.session_state.page = 'LHR'
+if col2.button("TRAINS"): st.session_state.page = 'TRAINS'
+if col3.button("LCY"): st.session_state.page = 'LCY'
+if col4.button("LHR"): st.session_state.page = 'LHR'
 
-st.markdown("---")
+st.markdown("---") # Linie despărțitoare
 
-# CONTENT LOGIC
+# LOGICĂ PAGINI
 if st.session_state.page == 'CHAT':
-    st.markdown("### 💬 DRIVER CHAT")
-    user_input = st.chat_input("Write a message...")
-    if user_input:
-        db = load_db()
-        db.append(user_input.upper())
-        save_db(db)
-        st.rerun()
-    
-    # Display synchronized messages
-    for msg in reversed(load_db()):
-        st.markdown(f'<div class="box" style="border-left-color:#3498db;">{msg}</div>', unsafe_allow_html=True)
+    user_input = st.chat_input("Type update...")
+    if user_input: st.session_state.db.append(user_input.upper())
+    for msg in reversed(st.session_state.db):
+        st.markdown(f'<div class="chat-box">{msg}</div>', unsafe_allow_html=True)
 
-elif st.session_state.page == 'STATIONS':
-    st.markdown("### 🚆 TRAIN STATIONS")
-    st.markdown('<div class="box">Stations loading...</div>', unsafe_allow_html=True)
+elif st.session_state.page == 'TRAINS':
+    stations = {"ST PANCRAS": "STP", "PADDINGTON": "PAD", "VICTORIA": "VIC"}
+    for name, code in stations.items():
+        try:
+            url = f"https://huxley2.azurewebsites.net/arrivals/{code}?rows=1"
+            with urllib.request.urlopen(url, timeout=2) as res:
+                t = json.loads(res.read().decode()).get("trainServices", [])[0]
+                st.markdown(f"""
+                    <div class="train-box">
+                        <div style="font-weight:bold; color:#2ecc71;">{name}</div>
+                        <div>🚆 {t.get("sta")} | {t.get("origin", [{}])[0].get("locationName")}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+        except: st.markdown(f'<div class="train-box">{name}: Info unavailable</div>', unsafe_allow_html=True)
 
-elif st.session_state.page == 'LCY':
-    st.markdown("### ✈️ CITY AIRPORT")
-    st.markdown('<div class="box">Monitoring LCY...</div>', unsafe_allow_html=True)
-
-elif st.session_state.page == 'LHR':
-    st.markdown("### ✈️ HEATHROW")
-    st.markdown('<div class="box">Monitoring LHR...</div>', unsafe_allow_html=True)
+else:
+    st.write(f"Monitorizare pentru {st.session_state.page} în curs de configurare...")
