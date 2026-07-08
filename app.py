@@ -4,7 +4,7 @@ from datetime import datetime
 # 1. SETĂRI PAGINĂ
 st.set_page_config(page_title="Taxi Intel Pro", layout="centered")
 
-# 2. CSS PROFESIONAL - Stil Dashboard
+# 2. CSS PROFESIONAL
 st.markdown("""
 <style>
     .stApp { background-color: #050505; color: #e0e0e0; }
@@ -23,39 +23,48 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATE CU ORA SOSIRII (ETA)
+# 3. DATE LIVE (Trenuri + Aeroporturi)
 transport_data = {
     "TRAINS": [
-        {"name": "Heathrow Express", "capacity": 8, "status": "On Time", "eta": "16:45"},
-        {"name": "Gatwick Express", "capacity": 10, "status": "On Time", "eta": "17:10"},
-        {"name": "Stansted Express", "capacity": 8, "status": "Delayed", "eta": "17:30"}
+        {"name": "Heathrow Express", "status": "On Time", "eta": "16:45"},
+        {"name": "Gatwick Express", "status": "On Time", "eta": "17:10"}
+    ],
+    "AIRPORTS": [
+        {"name": "London City (LCY)", "status": "Active", "delay": "None", "eta": "16:55"},
+        {"name": "Heathrow (LHR)", "status": "Busy", "delay": "15 min", "eta": "17:20"}
     ]
 }
 
 # 4. SIDEBAR
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3067/3067403.png", width=60) # Logo sugestiv
     st.title("TAXI INTEL")
-    st.caption(f"Update: {datetime.now().strftime('%H:%M:%S')}")
+    st.caption(f"Last update: {datetime.now().strftime('%H:%M:%S')}")
     st.divider()
-    if st.button("CHAT"): st.session_state.activ = 'CHAT'
     if st.button("TRAINS"): st.session_state.activ = 'TRAINS'
+    if st.button("AIRPORTS"): st.session_state.activ = 'AIRPORTS'
 
-# 5. LOGICĂ AFIȘARE PROFESIONALĂ
+# 5. LOGICĂ AFIȘARE
 if 'activ' not in st.session_state: st.session_state.activ = 'TRAINS'
 
 if st.session_state.activ == 'TRAINS':
-    st.subheader("🚂 Live Train Arrivals")
-    for train in transport_data["TRAINS"]:
-        if train["capacity"] >= 8:
-            st.markdown(f"""
-                <div class="data-card">
-                    <span class="status-pill">{train["status"]}</span>
-                    <div class="metric-title">{train["name"]}</div>
-                    <div class="metric-value">ETA: {train["eta"]}</div>
-                    <div style="font-size: 0.8em; color: #555;">Capacity: {train["capacity"]} carriages</div>
-                </div>
-            """, unsafe_allow_html=True)
-else:
-    st.write("### AI Assistant")
-    st.info("System ready for your input.")
+    st.subheader("🚂 Train Monitoring")
+    for t in transport_data["TRAINS"]:
+        st.markdown(f"""
+            <div class="data-card">
+                <span class="status-pill">{t["status"]}</span>
+                <div class="metric-title">{t["name"]}</div>
+                <div class="metric-value">ETA: {t["eta"]}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.activ == 'AIRPORTS':
+    st.subheader("✈️ Airport Arrivals")
+    for a in transport_data["AIRPORTS"]:
+        st.markdown(f"""
+            <div class="data-card">
+                <span class="status-pill">{a["status"]}</span>
+                <div class="metric-title">{a["name"]}</div>
+                <div class="metric-value">ETA: {a["eta"]}</div>
+                <div style="font-size: 0.8em; color: #f39c12;">Delay: {a["delay"]}</div>
+            </div>
+        """, unsafe_allow_html=True)
